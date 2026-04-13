@@ -19,6 +19,9 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";
 
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
 
+Write-Step "Stop API (release file locks before npm ci)"
+pm2 stop tezfix-api 2>$null; $true   # best-effort — ignore if not running
+
 Write-Step "Install dependencies (workspaces)"
 npm ci --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
