@@ -16,11 +16,16 @@ Set-Location $InstallDir
 
 # Ensure tools are in PATH even in fresh shells / service contexts
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+# Runner service runs as LocalSystem — also add Administrator's npm global bin
+foreach ($u in @("Administrator", $env:USERNAME, "SYSTEM")) {
+    $p = "C:\Users\$u\AppData\Roaming\npm"
+    if ((Test-Path $p) -and ($env:Path -notlike "*$p*")) { $env:Path += ";$p" }
+}
 
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "logs") | Out-Null
 
 Write-Step "Stop API (release file locks before npm ci)"
-pm2 stop tezfix-api 2>$null; $true   # best-effort — ignore if not running
+try { pm2 stop tezfix-api 2>$null } catch { Write-Warning "pm2 stop skipped: $_" }
 
 Write-Step "Install dependencies (workspaces)"
 npm ci --no-audit --no-fund
