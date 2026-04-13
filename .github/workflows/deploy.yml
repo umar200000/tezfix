@@ -1,0 +1,36 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, tezfix]
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync into C:\tezfix
+        shell: powershell
+        run: |
+          $src = "$env:GITHUB_WORKSPACE"
+          $dst = "C:\tezfix"
+          robocopy $src $dst /MIR /NFL /NDL /NJH /NJS /NC /NS /NP `
+            /XD node_modules .git .github `
+                "apps\api\node_modules" "apps\web\node_modules" "apps\admin\node_modules" `
+                "apps\api\dist" "apps\web\dist" "apps\admin\dist" `
+            /XF ".env" "dev.db" "dev.db-journal"
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE } else { exit 0 }
+
+      - name: Run deploy script
+        shell: powershell
+        run: |
+          C:\tezfix\deploy\deploy.ps1

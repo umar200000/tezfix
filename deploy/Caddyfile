@@ -1,0 +1,39 @@
+{
+	auto_https off
+}
+
+:80 {
+	encode zstd gzip
+
+	# API + uploads → Fastify on :3000 (prefix preserved)
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+	handle /uploads/* {
+		reverse_proxy localhost:3000
+	}
+
+	# Admin SPA at /admin/*
+	handle_path /admin/* {
+		root * C:\tezfix\apps\admin\dist
+		try_files {path} /index.html
+		file_server
+	}
+	handle /admin {
+		redir /admin/ permanent
+	}
+
+	# Client SPA (catch-all)
+	handle {
+		root * C:\tezfix\apps\web\dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output file C:\ProgramData\caddy\access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
