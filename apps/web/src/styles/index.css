@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand: #1F3A52;
+    --bg: #F1F3F6;
+    --card: #FFFFFF;
+    --separator: #D8DCE3;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    background: #F1F3F6;
+  }
+
+  body {
+    @apply text-surface-900 font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    font-size: 16px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+
+  input, textarea, select, button {
+    @apply outline-none;
+    font-family: inherit;
+  }
+
+  button { touch-action: manipulation; }
+}
+
+@layer components {
+  /* ===== CARDS ===== */
+  .ios-card {
+    @apply bg-white rounded-ios-lg shadow-ios-card;
+  }
+
+  .ios-group {
+    @apply bg-white rounded-ios-lg overflow-hidden shadow-ios-card;
+  }
+
+  /* Dark brand card (like payment card in reference) */
+  .brand-card {
+    @apply bg-primary-500 text-white rounded-ios-lg shadow-ios-card;
+  }
+
+  /* Muted tinted card (inner form fields) */
+  .field-card {
+    @apply bg-surface-100 rounded-ios-lg p-4 transition-colors;
+  }
+
+  /* ===== BUTTONS ===== */
+  .ios-btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-ios-lg font-semibold text-ios-body transition-all duration-150 active:scale-[0.97] select-none;
+    min-height: 52px;
+  }
+
+  .ios-btn-primary {
+    @apply ios-btn bg-primary-500 text-white shadow-ios-button hover:bg-primary-600 active:bg-primary-700;
+  }
+
+  .ios-btn-secondary {
+    @apply ios-btn bg-primary-50 text-primary-600 hover:bg-primary-100;
+  }
+
+  .ios-btn-tinted {
+    @apply ios-btn bg-surface-200 text-primary-600 hover:bg-surface-300;
+  }
+
+  .ios-btn-ghost {
+    @apply ios-btn bg-transparent text-primary-500 hover:bg-primary-50;
+  }
+
+  .ios-btn-destructive {
+    @apply ios-btn bg-danger-500 text-white hover:bg-danger-600;
+  }
+
+  .ios-btn-sm {
+    @apply text-ios-subhead px-4 py-2 rounded-ios;
+    min-height: 36px;
+  }
+
+  /* ===== INPUTS ===== */
+  .ios-input {
+    @apply w-full px-4 py-3.5 bg-white border border-separator rounded-ios-lg text-ios-body text-surface-900 placeholder:text-surface-500 focus:border-primary-400 focus:ring-4 focus:ring-primary-100/60 transition-all;
+  }
+
+  .ios-search {
+    @apply w-full pl-10 pr-10 py-2.5 bg-white border border-separator rounded-ios text-ios-callout text-surface-900 placeholder:text-surface-500 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all;
+  }
+
+  /* ===== NAV BARS ===== */
+  .ios-nav-bar {
+    @apply sticky top-0 z-40 bg-white/85 backdrop-blur-ios border-b border-separator;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .ios-tab-bar {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-ios border-t border-separator;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ===== TITLES ===== */
+  .ios-large-title {
+    @apply text-ios-lg-title text-primary-700 tracking-tight;
+  }
+
+  /* Uppercase section label (KARTA RAQAMI style) */
+  .ios-section-header {
+    @apply text-[11px] text-surface-500 uppercase tracking-[0.08em] font-semibold mb-2 px-1;
+  }
+
+  .field-label {
+    @apply text-[11px] text-surface-500 uppercase tracking-[0.08em] font-semibold mb-1.5 flex items-center gap-1.5;
+  }
+
+  /* ===== CHIPS ===== */
+  .ios-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-ios-footnote font-semibold;
+  }
+
+  .chip-mint {
+    @apply ios-chip bg-mint-100 text-mint-700;
+  }
+
+  .chip-primary-dark {
+    @apply ios-chip bg-primary-700 text-white;
+  }
+
+  .chip-neutral {
+    @apply ios-chip bg-surface-200 text-surface-700;
+  }
+
+  /* ===== SEGMENTED CONTROL ===== */
+  .ios-segmented {
+    @apply inline-flex p-1 bg-surface-200 rounded-ios gap-1;
+  }
+
+  .ios-segmented-item {
+    @apply px-4 py-1.5 rounded-[7px] text-ios-subhead font-medium text-surface-700 transition-all;
+  }
+
+  .ios-segmented-item-active {
+    @apply bg-white text-primary-700 shadow-sm font-semibold;
+  }
+
+  /* ===== LAYOUT ===== */
+  .page-container {
+    @apply min-h-screen pb-32;
+  }
+
+  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+@layer utilities {
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+  .pt-safe { padding-top: calc(env(safe-area-inset-top, 0px) + 16px); }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+  .text-balance { text-wrap: balance; }
+
+  .skeleton {
+    background: linear-gradient(90deg, #E4E7ED 25%, #F1F3F6 50%, #E4E7ED 75%);
+    background-size: 400px 100%;
+    @apply animate-shimmer rounded-ios;
+  }
+}

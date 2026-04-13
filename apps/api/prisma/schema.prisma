@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  telegramId String?  @unique @map("telegram_id")
+  role       String   // "master" | "client"
+  name       String
+  phone      String
+  username   String
+  avatar     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  services  Service[]
+  leads     Lead[]     @relation("ClientLeads")
+  favorites Favorite[]
+
+  @@map("users")
+}
+
+model Service {
+  id           Int      @id @default(autoincrement())
+  ownerId      Int      @map("owner_id")
+  name         String
+  description  String?
+  location     String?
+  latitude     Float?
+  longitude    Float?
+  images       String   @default("[]") // JSON array of image paths
+  servicesList String   @default("[]") @map("services_list") // JSON array
+  bio          String?
+  rating       Float    @default(0)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  owner     User       @relation(fields: [ownerId], references: [id])
+  leads     Lead[]
+  favorites Favorite[]
+
+  @@map("services")
+}
+
+model Lead {
+  id        Int      @id @default(autoincrement())
+  serviceId Int      @map("service_id")
+  clientId  Int      @map("client_id")
+  status    String   @default("new") // "new" | "contacted"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id])
+  client  User    @relation("ClientLeads", fields: [clientId], references: [id])
+
+  @@map("leads")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  serviceId Int      @map("service_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([userId, serviceId])
+  @@map("favorites")
+}
+
+model ServiceCategory {
+  id   Int    @id @default(autoincrement())
+  name String
+  icon String
+  slug String @unique
+
+  @@map("service_categories")
+}
