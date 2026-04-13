@@ -1,6 +1,6 @@
 # One-time runner bootstrap — token expires in 1 h, file deleted after use
 $ErrorActionPreference = "Stop"
-$token  = "BC5MAPYLT7XK64XE7BOZGFDJ3VCFI"
+$token  = "BC5MAPYIEYGJWSM6YOEWKQLJ3VG42"
 $runnerVersion = "2.333.1"
 $runnerDir = "C:\actions-runner"
 $repoUrl   = "https://github.com/umar200000/tezfix"
