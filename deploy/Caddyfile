@@ -1,16 +1,17 @@
 # Tezfix Caddyfile
 #
-# ── HTTP (bare IP) ────────────────────────────────────────────────────────────
-# Works immediately — no domain required.
+# ── HTTPS via sslip.io (no domain needed) ────────────────────────────────────
+# 46-8-176-235.sslip.io  →  resolves to 46.8.176.235  (free wildcard DNS)
+# Caddy auto-gets a Let's Encrypt certificate for this domain.
 #
-# ── HTTPS with Let's Encrypt (free SSL) ──────────────────────────────────────
-# 1. Point your domain A-record → 46.8.176.235
-# 2. Replace "http://46.8.176.235" with just "tezfix.uz" (your domain)
-# 3. Delete the "http://" prefix — Caddy auto-gets cert from Let's Encrypt
-# 4. Run: sudo systemctl reload caddy
+# Telegram bot webhook:  https://46-8-176-235.sslip.io/api/...
+# Telegram Mini App URL: https://46-8-176-235.sslip.io
+#
+# ── Switch to real domain later ───────────────────────────────────────────────
+# Replace "46-8-176-235.sslip.io" with "tezfix.uz" and git push.
 # ─────────────────────────────────────────────────────────────────────────────
 
-http://46.8.176.235 {
+46-8-176-235.sslip.io {
     encode zstd gzip
 
     # API & uploads → Fastify:3000
