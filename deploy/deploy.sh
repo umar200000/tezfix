@@ -56,7 +56,7 @@ fi
 log "PM2 reload"
 ECOSYSTEM="$INSTALL_DIR/deploy/ecosystem.config.cjs"
 if pm2 jlist 2>/dev/null | grep -q '"name":"tezfix-api"'; then
-  pm2 reload "$ECOSYSTEM" --update-env
+  pm2 restart "$ECOSYSTEM" --update-env
 else
   pm2 start "$ECOSYSTEM"
 fi
