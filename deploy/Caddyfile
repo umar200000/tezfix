@@ -1,39 +1,45 @@
-{
-	auto_https off
-}
+# Tezfix Caddyfile
+#
+# ── HTTP (bare IP) ────────────────────────────────────────────────────────────
+# Works immediately — no domain required.
+#
+# ── HTTPS with Let's Encrypt (free SSL) ──────────────────────────────────────
+# 1. Point your domain A-record → 46.8.176.235
+# 2. Replace "http://46.8.176.235" with just "tezfix.uz" (your domain)
+# 3. Delete the "http://" prefix — Caddy auto-gets cert from Let's Encrypt
+# 4. Run: sudo systemctl reload caddy
+# ─────────────────────────────────────────────────────────────────────────────
 
-:80 {
-	encode zstd gzip
+http://46.8.176.235 {
+    encode zstd gzip
 
-	# API + uploads → Fastify on :3000 (prefix preserved)
-	handle /api/* {
-		reverse_proxy localhost:3000
-	}
-	handle /uploads/* {
-		reverse_proxy localhost:3000
-	}
+    # API & uploads → Fastify:3000
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+    handle /uploads/* {
+        reverse_proxy localhost:3000
+    }
 
-	# Admin SPA at /admin/*
-	handle_path /admin/* {
-		root * C:\tezfix\apps\admin\dist
-		try_files {path} /index.html
-		file_server
-	}
-	handle /admin {
-		redir /admin/ permanent
-	}
+    # Admin SPA (sub-path)
+    handle_path /admin/* {
+        root * /opt/tezfix/apps/admin/dist
+        try_files {path} /index.html
+        file_server
+    }
+    redir /admin /admin/ permanent
 
-	# Client SPA (catch-all)
-	handle {
-		root * C:\tezfix\apps\web\dist
-		try_files {path} /index.html
-		file_server
-	}
+    # Web SPA (catch-all)
+    handle {
+        root * /opt/tezfix/apps/web/dist
+        try_files {path} /index.html
+        file_server
+    }
 
-	log {
-		output file C:\ProgramData\caddy\access.log {
-			roll_size 10mb
-			roll_keep 5
-		}
-	}
+    log {
+        output file /var/log/caddy/tezfix-access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
 }

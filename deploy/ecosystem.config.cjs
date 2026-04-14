@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "tezfix-api",
-      cwd: "C:/tezfix/apps/api",
+      cwd: "/opt/tezfix/apps/api",
       script: "./dist/index.js",
       exec_mode: "fork",
       instances: 1,
@@ -11,8 +11,8 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "3000",
       },
-      out_file: "C:/tezfix/logs/api.out.log",
-      error_file: "C:/tezfix/logs/api.err.log",
+      out_file: "/opt/tezfix/logs/api.out.log",
+      error_file: "/opt/tezfix/logs/api.err.log",
       merge_logs: true,
       time: true,
     },
