@@ -52,14 +52,11 @@ if $FIRST_RUN; then
   npm run db:seed -w apps/api 2>/dev/null || echo "Seed skipped/failed — continuing"
 fi
 
-# ── 6. PM2 reload ─────────────────────────────────────────────────────────────
-log "PM2 reload"
+# ── 6. PM2 start ─────────────────────────────────────────────────────────────
+log "PM2 start"
 ECOSYSTEM="$INSTALL_DIR/deploy/ecosystem.config.cjs"
-if pm2 jlist 2>/dev/null | grep -q '"name":"tezfix-api"'; then
-  pm2 restart "$ECOSYSTEM" --update-env
-else
-  pm2 start "$ECOSYSTEM"
-fi
+pm2 delete tezfix-api 2>/dev/null || true
+pm2 start "$ECOSYSTEM"
 pm2 save
 
 # ── 7. Caddy reload ───────────────────────────────────────────────────────────
