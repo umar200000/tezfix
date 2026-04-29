@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useStore } from '../../hooks/useStore';
+import { api } from '../../utils/api';
 import {
   User,
   Phone,
@@ -11,10 +13,28 @@ import {
   HelpCircle,
   Award,
   Globe,
+  Car,
+  Loader2,
 } from 'lucide-react';
 
 export default function MasterProfile() {
-  const { user, logout } = useStore();
+  const { user, logout, setUser, setActiveRole } = useStore();
+  const [switching, setSwitching] = useState(false);
+
+  const handleSwitchToClient = async () => {
+    if (!user) return;
+    setSwitching(true);
+    try {
+      const res = await api.post<{ user: any }>('/auth/set-role', {
+        userId: user.id,
+        role: 'client',
+      });
+      setUser(res.user);
+      setActiveRole('client');
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -26,11 +46,19 @@ export default function MasterProfile() {
         {/* Hero profile card */}
         <div className="bg-white rounded-ios-xl p-5 shadow-ios-card flex items-center gap-4">
           <div className="relative">
-            <div className="w-[72px] h-[72px] rounded-full bg-primary-500 flex items-center justify-center shadow-ios-card">
-              <span className="text-white font-bold text-[28px]">
-                {user?.name?.charAt(0)}
-              </span>
-            </div>
+            {user?.photoUrl || user?.avatar ? (
+              <img
+                src={user.photoUrl || user.avatar || ''}
+                alt={user.name}
+                className="w-[72px] h-[72px] rounded-full object-cover shadow-ios-card"
+              />
+            ) : (
+              <div className="w-[72px] h-[72px] rounded-full bg-primary-500 flex items-center justify-center shadow-ios-card">
+                <span className="text-white font-bold text-[28px]">
+                  {user?.name?.charAt(0)}
+                </span>
+              </div>
+            )}
             <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-mint-500 border-[3px] border-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -46,10 +74,31 @@ export default function MasterProfile() {
               </div>
             </div>
           </div>
-          <button className="w-9 h-9 rounded-full bg-surface-150 flex items-center justify-center active:scale-95 transition-transform">
-            <ChevronRight className="w-5 h-5 text-surface-600" />
-          </button>
         </div>
+
+        {/* Switch to client mode */}
+        <button
+          onClick={handleSwitchToClient}
+          disabled={switching}
+          className="w-full bg-white rounded-ios-xl p-4 shadow-ios-card flex items-center gap-3 active:bg-surface-150 transition-colors disabled:opacity-60"
+        >
+          <div className="w-10 h-10 rounded-ios bg-mint-100 flex items-center justify-center">
+            <Car className="w-5 h-5 text-mint-600" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-ios-headline text-primary-700">
+              {user?.isClient ? "Mijoz rejimiga o'tish" : "Mijoz sifatida ishlash"}
+            </p>
+            <p className="text-ios-caption text-surface-600 mt-0.5">
+              Xizmat qidirish uchun
+            </p>
+          </div>
+          {switching ? (
+            <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-surface-400" strokeWidth={2.5} />
+          )}
+        </button>
 
         {/* Contact info */}
         <div>
@@ -59,7 +108,7 @@ export default function MasterProfile() {
             <div className="border-t border-separator ml-[52px]" />
             <InfoRow icon={Phone} bg="bg-mint-100" iconColor="text-mint-600" label="Telefon" value={user?.phone || '—'} />
             <div className="border-t border-separator ml-[52px]" />
-            <InfoRow icon={AtSign} bg="bg-surface-200" iconColor="text-surface-700" label="Username" value={user?.username || '—'} />
+            <InfoRow icon={AtSign} bg="bg-surface-200" iconColor="text-surface-700" label="Username" value={user?.username ? `@${user.username}` : '—'} />
           </div>
         </div>
 

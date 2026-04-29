@@ -9,12 +9,17 @@ datasource db {
 
 model User {
   id         Int      @id @default(autoincrement())
-  telegramId String?  @unique @map("telegram_id")
-  role       String   // "master" | "client"
+  telegramId String   @unique @map("telegram_id")
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
   name       String
-  phone      String
-  username   String
+  username   String?
+  phone      String?
+  photoUrl   String?  @map("photo_url")
   avatar     String?
+  isMaster   Boolean  @default(false) @map("is_master")
+  isClient   Boolean  @default(false) @map("is_client")
+  role       String?
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
@@ -52,7 +57,7 @@ model Lead {
   id        Int      @id @default(autoincrement())
   serviceId Int      @map("service_id")
   clientId  Int      @map("client_id")
-  status    String   @default("new") // "new" | "contacted"
+  status    String   @default("new") // kept for backwards compat
   createdAt DateTime @default(now()) @map("created_at")
 
   service Service @relation(fields: [serviceId], references: [id])
@@ -81,4 +86,35 @@ model ServiceCategory {
   slug String @unique
 
   @@map("service_categories")
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  title     String
+  subtitle  String?
+  image     String   // /uploads/<file>
+  link      String?
+  isActive  Boolean  @default(true) @map("is_active")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
+model QuickService {
+  id         Int      @id @default(autoincrement())
+  name       String
+  icon       String   @default("wrench") // slug from category icon set or emoji
+  masterName String   @map("master_name")
+  phone      String
+  address    String
+  description String?
+  image      String?  // optional /uploads/<file>
+  isActive   Boolean  @default(true) @map("is_active")
+  order      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("quick_services")
 }

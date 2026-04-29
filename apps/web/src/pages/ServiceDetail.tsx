@@ -27,20 +27,22 @@ interface ServiceData {
   owner: {
     id: number;
     name: string;
-    phone: string;
+    phone: string | null;
+    photoUrl: string | null;
     avatar: string | null;
-    username: string;
+    username: string | null;
   };
 }
 
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useStore();
+  const { user, activeRole } = useStore();
   const [service, setService] = useState<ServiceData | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [callSent, setCallSent] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [imageIdx, setImageIdx] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -87,34 +89,81 @@ export default function ServiceDetail() {
 
   if (!service) return null;
 
-  const serviceCategories = JSON.parse(service.servicesList) as string[];
+  const serviceCategories = (() => {
+    try {
+      return JSON.parse(service.servicesList) as string[];
+    } catch {
+      return [];
+    }
+  })();
+  const images = (() => {
+    try {
+      return JSON.parse(service.images) as string[];
+    } catch {
+      return [];
+    }
+  })();
+  const isClientView = activeRole === 'client';
 
   return (
     <div className="min-h-screen pb-28">
-      {/* Hero */}
-      <div className="relative h-[260px] bg-primary-500 overflow-hidden">
-        <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-primary-400/30" />
-        <div className="absolute -left-12 -bottom-12 w-48 h-48 rounded-full bg-primary-700/40" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Wrench className="w-28 h-28 text-white/15" strokeWidth={1.5} />
-        </div>
+      {/* Hero / image carousel */}
+      <div className="relative h-[280px] bg-primary-500 overflow-hidden">
+        {images.length > 0 ? (
+          <>
+            <div
+              className="flex h-full transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${imageIdx * 100}%)` }}
+            >
+              {images.map((src) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt={service.name}
+                  className="min-w-full h-full object-cover"
+                />
+              ))}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none" />
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setImageIdx(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === imageIdx ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-primary-400/30" />
+            <div className="absolute -left-12 -bottom-12 w-48 h-48 rounded-full bg-primary-700/40" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Wrench className="w-28 h-28 text-white/15" strokeWidth={1.5} />
+            </div>
+          </>
+        )}
 
-        {/* Top nav floating */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 safe-top">
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 safe-top z-10">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform"
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform"
           >
             <ChevronLeft className="w-6 h-6 text-white" strokeWidth={2.4} />
           </button>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform">
+            <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform">
               <Share2 className="w-5 h-5 text-white" />
             </button>
-            {user?.role === 'client' && (
+            {isClientView && (
               <button
                 onClick={handleFavorite}
-                className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform"
+                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-ios flex items-center justify-center active:scale-95 transition-transform"
               >
                 <Heart
                   className={`w-5 h-5 ${favorited ? 'text-danger-500 fill-danger-500' : 'text-white'}`}
@@ -125,9 +174,7 @@ export default function ServiceDetail() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="px-4 -mt-6 relative">
-        {/* Main card */}
         <div className="bg-white rounded-ios-2xl p-5 shadow-ios-card">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -149,7 +196,6 @@ export default function ServiceDetail() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-separator">
             <div className="flex-1 text-center">
               <div className="flex items-center justify-center gap-1 text-primary-500 mb-1">
@@ -177,7 +223,6 @@ export default function ServiceDetail() {
           </div>
         </div>
 
-        {/* Bio */}
         {service.bio && (
           <div className="mt-4">
             <p className="ios-section-header">Tavsif</p>
@@ -189,40 +234,47 @@ export default function ServiceDetail() {
           </div>
         )}
 
-        {/* Services */}
-        <div className="mt-4">
-          <p className="ios-section-header">Xizmatlar</p>
-          <div className="bg-white rounded-ios-xl p-4 shadow-ios-card">
-            <div className="flex flex-wrap gap-2">
-              {serviceCategories.map((cat) => (
-                <span
-                  key={cat}
-                  className="ios-chip bg-primary-50 text-primary-700"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-                  {cat}
-                </span>
-              ))}
+        {serviceCategories.length > 0 && (
+          <div className="mt-4">
+            <p className="ios-section-header">Xizmatlar</p>
+            <div className="bg-white rounded-ios-xl p-4 shadow-ios-card">
+              <div className="flex flex-wrap gap-2">
+                {serviceCategories.map((cat) => (
+                  <span key={cat} className="ios-chip bg-primary-50 text-primary-700">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                    {cat}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Owner info */}
         <div className="mt-4">
           <p className="ios-section-header">Usta haqida</p>
           <div className="bg-white rounded-ios-lg p-4 shadow-ios-card flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
-              <span className="text-white font-bold text-ios-title-3">
-                {service.owner.name.charAt(0)}
-              </span>
-            </div>
+            {service.owner.photoUrl || service.owner.avatar ? (
+              <img
+                src={service.owner.photoUrl || service.owner.avatar || ''}
+                alt={service.owner.name}
+                className="w-12 h-12 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                <span className="text-white font-bold text-ios-title-3">
+                  {service.owner.name.charAt(0)}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-ios-headline text-primary-700 truncate">
                 {service.owner.name}
               </p>
-              <p className="text-ios-footnote text-surface-500">
-                {service.owner.username}
-              </p>
+              {service.owner.username && (
+                <p className="text-ios-footnote text-surface-500">
+                  @{service.owner.username}
+                </p>
+              )}
             </div>
             <div className="chip-mint">
               <div className="w-1.5 h-1.5 rounded-full bg-mint-600" />
@@ -233,20 +285,27 @@ export default function ServiceDetail() {
       </div>
 
       {/* Fixed bottom CTA */}
-      {user?.role === 'client' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-ios border-t border-separator/30 px-4 pt-3 pb-safe z-50">
+      {isClientView && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-ios border-t border-separator/30 px-4 pt-3 pb-safe z-50 flex gap-2">
+          <button
+            onClick={handleFavorite}
+            className="w-14 h-14 rounded-ios-lg bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform"
+            aria-label="Sevimli"
+          >
+            <Heart
+              className={`w-6 h-6 transition-colors ${
+                favorited ? 'text-danger-500 fill-danger-500' : 'text-surface-700'
+              }`}
+              strokeWidth={2.2}
+            />
+          </button>
           {callSent ? (
-            <div className="flex items-center justify-center gap-2 py-3.5 bg-mint-100 rounded-ios-lg">
+            <div className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-mint-100 rounded-ios-lg">
               <CheckCircle2 className="w-5 h-5 text-mint-600" />
-              <span className="text-ios-headline text-mint-700">
-                So'rov yuborildi!
-              </span>
+              <span className="text-ios-headline text-mint-700">So'rov yuborildi!</span>
             </div>
           ) : (
-            <button
-              onClick={handleCall}
-              className="ios-btn-primary w-full"
-            >
+            <button onClick={handleCall} className="ios-btn-primary flex-1">
               <Phone className="w-5 h-5" />
               Qo'ng'iroq qilish
             </button>

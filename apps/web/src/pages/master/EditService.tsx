@@ -1,7 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../utils/api';
-import { ChevronLeft, Check, Loader2, Store, MapPin, FileText } from 'lucide-react';
+import {
+  ChevronLeft,
+  Check,
+  Loader2,
+  Store,
+  MapPin,
+  FileText,
+  ImagePlus,
+  X,
+} from 'lucide-react';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 
 interface Category {
@@ -11,17 +20,22 @@ interface Category {
   slug: string;
 }
 
+const MAX_IMAGES = 10;
+
 export default function EditService() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [bio, setBio] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -32,7 +46,16 @@ export default function EditService() {
       setName(service.name);
       setLocation(service.location || '');
       setBio(service.bio || '');
-      setSelectedCategories(JSON.parse(service.servicesList));
+      try {
+        setSelectedCategories(JSON.parse(service.servicesList));
+      } catch {
+        setSelectedCategories([]);
+      }
+      try {
+        setImages(JSON.parse(service.images));
+      } catch {
+        setImages([]);
+      }
       setFetching(false);
     });
   }, [id]);
@@ -43,9 +66,40 @@ export default function EditService() {
     );
   };
 
+  const handlePickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const slotsLeft = MAX_IMAGES - images.length;
+    const toUpload = files.slice(0, slotsLeft);
+    if (toUpload.length === 0) {
+      e.target.value = '';
+      return;
+    }
+    setUploading(true);
+    const fd = new FormData();
+    toUpload.forEach((f) => fd.append('files', f));
+    fetch('/api/upload/images', { method: 'POST', body: fd })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Upload failed');
+        return res.json() as Promise<{ files: { url: string }[] }>;
+      })
+      .then((data) => {
+        setImages((prev) => [...prev, ...data.files.map((f) => f.url)]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      });
+  };
+
+  const removeImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || selectedCategories.length === 0) return;
+    if (!name) return;
     setLoading(true);
     try {
       await api.put(`/services/${id}`, {
@@ -53,6 +107,7 @@ export default function EditService() {
         location: location || null,
         bio: bio || null,
         servicesList: JSON.stringify(selectedCategories),
+        images: JSON.stringify(images),
       });
       navigate('/');
     } finally {
@@ -60,7 +115,8 @@ export default function EditService() {
     }
   };
 
-  const canSubmit = name && selectedCategories.length > 0 && !loading;
+  const canSubmit = !!name && !loading;
+  const canAddMore = images.length < MAX_IMAGES && !uploading;
 
   if (fetching) {
     return (
@@ -96,6 +152,61 @@ export default function EditService() {
       </div>
 
       <form id="edit-service" onSubmit={handleSubmit} className="p-4 pb-32 space-y-5">
+        {/* Image gallery */}
+        <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="field-label !mb-0 text-surface-500">Rasmlar</p>
+            <span className="chip-mint !py-0.5 !px-2 !text-[11px]">
+              {images.length}/{MAX_IMAGES}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {images.map((url, idx) => (
+              <div
+                key={url + idx}
+                className="relative aspect-square rounded-ios-lg overflow-hidden bg-surface-100 shadow-ios-card"
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 backdrop-blur-ios flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <X className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+            {canAddMore && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square rounded-ios-lg bg-white border-2 border-dashed border-primary-200 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+                ) : (
+                  <>
+                    <ImagePlus className="w-6 h-6 text-primary-500" strokeWidth={2} />
+                    <span className="text-ios-caption text-primary-500 font-medium">
+                      Qo'shish
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePickFiles}
+            className="hidden"
+          />
+        </div>
+
+        {/* Basic info */}
         <div className="space-y-3">
           <div className="field-card">
             <p className="field-label text-surface-500">

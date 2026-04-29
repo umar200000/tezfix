@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
-import { Users, Store, PhoneCall, UserCheck, TrendingUp } from 'lucide-react';
+import {
+  Users,
+  Store,
+  PhoneCall,
+  UserCheck,
+  TrendingUp,
+  Image as ImageIcon,
+  Zap,
+} from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
@@ -8,6 +16,8 @@ interface Stats {
   totalClients: number;
   totalServices: number;
   totalLeads: number;
+  totalQuickServices?: number;
+  totalBanners?: number;
 }
 
 export default function Dashboard() {
@@ -26,22 +36,22 @@ export default function Dashboard() {
   }
 
   const cards = [
-    { label: 'Jami foydalanuvchilar', value: stats.totalUsers, icon: Users, color: 'bg-blue-50 text-blue-600', iconBg: 'bg-blue-100' },
-    { label: 'Ustalar', value: stats.totalMasters, icon: UserCheck, color: 'bg-green-50 text-green-600', iconBg: 'bg-green-100' },
-    { label: 'Mijozlar', value: stats.totalClients, icon: Users, color: 'bg-purple-50 text-purple-600', iconBg: 'bg-purple-100' },
-    { label: 'Xizmatlar', value: stats.totalServices, icon: Store, color: 'bg-orange-50 text-orange-600', iconBg: 'bg-orange-100' },
-    { label: 'Jami leadlar', value: stats.totalLeads, icon: PhoneCall, color: 'bg-red-50 text-red-600', iconBg: 'bg-red-100' },
+    { label: 'Jami foydalanuvchilar', value: stats.totalUsers, icon: Users, iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+    { label: 'Ustalar', value: stats.totalMasters, icon: UserCheck, iconBg: 'bg-green-100', iconColor: 'text-green-600' },
+    { label: 'Mijozlar', value: stats.totalClients, icon: Users, iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
+    { label: 'Xizmatlar', value: stats.totalServices, icon: Store, iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
+    { label: "Jami so'rovlar", value: stats.totalLeads, icon: PhoneCall, iconBg: 'bg-red-100', iconColor: 'text-red-600' },
+    { label: 'Tez xizmatlar', value: stats.totalQuickServices ?? 0, icon: Zap, iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+    { label: 'Bannerlar', value: stats.totalBanners ?? 0, icon: ImageIcon, iconBg: 'bg-pink-100', iconColor: 'text-pink-600' },
   ];
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">TezFix platformasi statistikasi</p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {cards.map((card) => (
           <div key={card.label} className="stat-card">
@@ -51,14 +61,13 @@ export default function Dashboard() {
                 <p className="text-3xl font-bold mt-1">{card.value}</p>
               </div>
               <div className={`w-12 h-12 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                <card.icon className={`w-6 h-6 ${card.color.split(' ')[1]}`} />
+                <card.icon className={`w-6 h-6 ${card.iconColor}`} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Activity summary */}
       <div className="stat-card">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-primary-500" />

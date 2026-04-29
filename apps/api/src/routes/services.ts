@@ -19,11 +19,14 @@ export async function serviceRoutes(app: FastifyInstance) {
 
     const services = await prisma.service.findMany({
       where,
-      include: { owner: { select: { id: true, name: true, phone: true, avatar: true } } },
+      include: {
+        owner: {
+          select: { id: true, name: true, phone: true, username: true, avatar: true, photoUrl: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter by category if provided
     if (category) {
       return services.filter((s) => {
         const list = JSON.parse(s.servicesList) as string[];
@@ -38,7 +41,19 @@ export async function serviceRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const service = await prisma.service.findUnique({
       where: { id: parseInt(request.params.id) },
-      include: { owner: { select: { id: true, name: true, phone: true, avatar: true, username: true } } },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            username: true,
+            avatar: true,
+            photoUrl: true,
+            telegramId: true,
+          },
+        },
+      },
     });
     if (!service) return reply.status(404).send({ error: 'Service not found' });
     return service;
@@ -57,8 +72,28 @@ export async function serviceRoutes(app: FastifyInstance) {
     const body = request.body as any;
     const { ownerId, name, description, location, latitude, longitude, images, servicesList, bio } = body;
 
-    if (!ownerId || !name || !servicesList || JSON.parse(servicesList).length === 0) {
-      return reply.status(400).send({ error: 'ownerId, name, and at least 1 service required' });
+    if (!ownerId || !name) {
+      return reply.status(400).send({ error: 'ownerId and name required' });
+    }
+
+    let normalizedServices = '[]';
+    if (servicesList) {
+      try {
+        const parsed = typeof servicesList === 'string' ? JSON.parse(servicesList) : servicesList;
+        normalizedServices = JSON.stringify(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        normalizedServices = '[]';
+      }
+    }
+
+    let normalizedImages = '[]';
+    if (images) {
+      try {
+        const parsed = typeof images === 'string' ? JSON.parse(images) : images;
+        normalizedImages = JSON.stringify(Array.isArray(parsed) ? parsed.slice(0, 10) : []);
+      } catch {
+        normalizedImages = '[]';
+      }
     }
 
     const service = await prisma.service.create({
@@ -69,10 +104,16 @@ export async function serviceRoutes(app: FastifyInstance) {
         location: location || null,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        images: images || '[]',
-        servicesList: servicesList || '[]',
+        images: normalizedImages,
+        servicesList: normalizedServices,
         bio: bio || null,
       },
+    });
+
+    // Mark owner as master automatically
+    await prisma.user.update({
+      where: { id: parseInt(ownerId) },
+      data: { isMaster: true },
     });
 
     return service;
@@ -92,7 +133,17 @@ export async function serviceRoutes(app: FastifyInstance) {
         ...(body.images !== undefined && { images: body.images }),
         ...(body.servicesList !== undefined && { servicesList: body.servicesList }),
         ...(body.bio !== undefined && { bio: body.bio }),
+        ...(body.isActive !== undefined && { isActive: !!body.isActive }),
       },
     });
+  });
+
+  // Delete service
+  app.delete<{ Params: { id: string } }>('/:id', async (request) => {
+    const id = parseInt(request.params.id);
+    await prisma.favorite.deleteMany({ where: { serviceId: id } });
+    await prisma.lead.deleteMany({ where: { serviceId: id } });
+    await prisma.service.delete({ where: { id } });
+    return { ok: true };
   });
 }

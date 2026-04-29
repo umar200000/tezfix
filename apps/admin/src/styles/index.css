@@ -25,4 +25,16 @@
   .table-container {
     @apply bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden;
   }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm px-4 py-2 rounded-lg border border-gray-200 transition-colors;
+  }
+  .input {
+    @apply w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 transition;
+  }
+  textarea.input {
+    @apply h-auto py-2;
+  }
 }

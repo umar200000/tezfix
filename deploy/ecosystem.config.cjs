@@ -4,6 +4,8 @@ module.exports = {
       name: "tezfix-api",
       cwd: "/opt/tezfix/apps/api",
       script: "./dist/index.js",
+      // Load /opt/tezfix/apps/api/.env into process.env (Node 20+ flag).
+      node_args: ["--env-file=/opt/tezfix/apps/api/.env"],
       exec_mode: "fork",
       instances: 1,
       max_memory_restart: "512M",

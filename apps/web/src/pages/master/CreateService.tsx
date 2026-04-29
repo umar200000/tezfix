@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
 import { api } from '../../utils/api';
-import { ChevronLeft, Check, Loader2, Store, MapPin, FileText } from 'lucide-react';
+import {
+  ChevronLeft,
+  Check,
+  Loader2,
+  Store,
+  MapPin,
+  FileText,
+  ImagePlus,
+  X,
+} from 'lucide-react';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 
 interface Category {
@@ -12,16 +21,21 @@ interface Category {
   slug: string;
 }
 
+const MAX_IMAGES = 10;
+
 export default function CreateService() {
   const navigate = useNavigate();
   const { user } = useStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [bio, setBio] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]); // urls already uploaded
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     api.get<Category[]>('/categories').then(setCategories);
@@ -33,9 +47,44 @@ export default function CreateService() {
     );
   };
 
+  const handlePickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const slotsLeft = MAX_IMAGES - images.length;
+    const toUpload = files.slice(0, slotsLeft);
+    if (toUpload.length === 0) {
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    const fd = new FormData();
+    toUpload.forEach((f) => fd.append('files', f));
+
+    fetch('/api/upload/images', { method: 'POST', body: fd })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Upload failed');
+        return res.json() as Promise<{ files: { url: string }[] }>;
+      })
+      .then((data) => {
+        setImages((prev) => [...prev, ...data.files.map((f) => f.url)]);
+      })
+      .catch(() => {
+        // silent — could show toast later
+      })
+      .finally(() => {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      });
+  };
+
+  const removeImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || selectedCategories.length === 0 || !user) return;
+    if (!name || !user) return;
     setLoading(true);
     try {
       await api.post('/services/create', {
@@ -44,7 +93,7 @@ export default function CreateService() {
         location: location || null,
         bio: bio || null,
         servicesList: JSON.stringify(selectedCategories),
-        images: '[]',
+        images: JSON.stringify(images),
       });
       navigate('/');
     } finally {
@@ -52,7 +101,8 @@ export default function CreateService() {
     }
   };
 
-  const canSubmit = name && selectedCategories.length > 0 && !loading;
+  const canSubmit = !!name && !loading;
+  const canAddMore = images.length < MAX_IMAGES && !uploading;
 
   return (
     <div className="min-h-screen">
@@ -80,7 +130,64 @@ export default function CreateService() {
       </div>
 
       <form id="create-service" onSubmit={handleSubmit} className="p-4 pb-32 space-y-5">
-        {/* Basic info — field-card style (screenshot match) */}
+        {/* Image gallery */}
+        <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="field-label !mb-0 text-surface-500">Rasmlar</p>
+            <span className="chip-mint !py-0.5 !px-2 !text-[11px]">
+              {images.length}/{MAX_IMAGES}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {images.map((url, idx) => (
+              <div
+                key={url}
+                className="relative aspect-square rounded-ios-lg overflow-hidden bg-surface-100 shadow-ios-card"
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 backdrop-blur-ios flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <X className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+            {canAddMore && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square rounded-ios-lg bg-white border-2 border-dashed border-primary-200 flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+                ) : (
+                  <>
+                    <ImagePlus className="w-6 h-6 text-primary-500" strokeWidth={2} />
+                    <span className="text-ios-caption text-primary-500 font-medium">
+                      Qo'shish
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePickFiles}
+            className="hidden"
+          />
+          <p className="text-ios-caption text-surface-500 mt-2 px-1">
+            Eng ko'pi {MAX_IMAGES} ta rasm. Birinchi rasm asosiy bo'ladi.
+          </p>
+        </div>
+
+        {/* Basic info */}
         <div className="space-y-3">
           <div className="field-card">
             <p className="field-label text-surface-500">
@@ -99,7 +206,7 @@ export default function CreateService() {
           <div className="field-card">
             <p className="field-label text-surface-500">
               <MapPin className="w-3.5 h-3.5" strokeWidth={2.2} />
-              Lokatsiya
+              Lokatsiya <span className="text-surface-400">(ihtiyoriy)</span>
             </p>
             <input
               type="text"
@@ -112,7 +219,7 @@ export default function CreateService() {
           <div className="field-card">
             <p className="field-label text-surface-500">
               <FileText className="w-3.5 h-3.5" strokeWidth={2.2} />
-              Tavsif
+              Tavsif <span className="text-surface-400">(ihtiyoriy)</span>
             </p>
             <textarea
               value={bio}
@@ -127,7 +234,9 @@ export default function CreateService() {
         {/* Categories */}
         <div>
           <div className="flex items-center justify-between mb-3 px-1">
-            <p className="field-label !mb-0 text-surface-500">Xizmatlar</p>
+            <p className="field-label !mb-0 text-surface-500">
+              Xizmatlar <span className="text-surface-400">(ihtiyoriy)</span>
+            </p>
             <span className="chip-mint !py-0.5 !px-2 !text-[11px]">
               {selectedCategories.length} tanlangan
             </span>
@@ -150,7 +259,10 @@ export default function CreateService() {
                       selected ? 'bg-primary-700' : 'bg-primary-50'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${selected ? 'text-white' : 'text-primary-500'}`} strokeWidth={2} />
+                    <Icon
+                      className={`w-5 h-5 ${selected ? 'text-white' : 'text-primary-500'}`}
+                      strokeWidth={2}
+                    />
                   </div>
                   <span className="text-ios-footnote font-semibold flex-1 leading-tight">
                     {cat.name}
@@ -166,8 +278,11 @@ export default function CreateService() {
           </div>
         </div>
 
-        {/* Sticky CTA */}
-        <button type="submit" disabled={!canSubmit} className="ios-btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed">
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="ios-btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
+        >
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -184,4 +299,3 @@ export default function CreateService() {
     </div>
   );
 }
-

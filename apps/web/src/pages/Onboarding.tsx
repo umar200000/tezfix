@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { Car, Wrench, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -26,13 +26,20 @@ const slides = [
   },
 ];
 
+const SLIDES_DONE_KEY = 'tezfix-slides-done';
+
 export default function Onboarding() {
+  const slidesAlreadyDone = typeof window !== 'undefined' && localStorage.getItem(SLIDES_DONE_KEY) === '1';
   const [step, setStep] = useState(0);
-  const [showRole, setShowRole] = useState(false);
+  const [showRole, setShowRole] = useState(slidesAlreadyDone);
   const { setOnboarded } = useStore();
   const isLast = step === slides.length - 1;
   const current = slides[step];
   const Icon = current.icon;
+
+  useEffect(() => {
+    if (showRole) localStorage.setItem(SLIDES_DONE_KEY, '1');
+  }, [showRole]);
 
   const handleNext = () => {
     if (isLast) setShowRole(true);
@@ -93,7 +100,6 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col overflow-hidden safe-top relative">
-      {/* Skip */}
       <div className="flex justify-end px-5 pt-4">
         <button
           onClick={() => setShowRole(true)}
@@ -103,7 +109,6 @@ export default function Onboarding() {
         </button>
       </div>
 
-      {/* Animated hero */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
         <div className={`absolute w-[380px] h-[380px] rounded-full blur-3xl opacity-60 ${current.glow} transition-all duration-700`} />
 
@@ -125,7 +130,6 @@ export default function Onboarding() {
         </p>
       </div>
 
-      {/* Footer */}
       <div className="px-6 pb-10 space-y-6">
         <div className="flex justify-center gap-1.5">
           {slides.map((_, i) => (

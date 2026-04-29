@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../../hooks/useStore';
 import { api } from '../../utils/api';
-import { Inbox, Phone, Clock, ChevronRight } from 'lucide-react';
+import { Inbox, Phone, Clock, Send } from 'lucide-react';
 
 interface Lead {
   id: number;
   status: string;
   createdAt: string;
-  client: { id: number; name: string; phone: string; avatar: string | null };
+  client: {
+    id: number;
+    name: string;
+    phone: string | null;
+    username: string | null;
+    photoUrl: string | null;
+    avatar: string | null;
+  };
   service: { id: number; name: string };
 }
-
-type Filter = 'all' | 'new' | 'contacted';
 
 export default function MasterLeads() {
   const { user } = useStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
     if (!user) return;
@@ -41,13 +45,6 @@ export default function MasterLeads() {
     return d.toLocaleDateString('uz', { day: 'numeric', month: 'short' });
   };
 
-  const filtered = leads.filter((l) => {
-    if (filter === 'all') return true;
-    return l.status === filter;
-  });
-
-  const newCount = leads.filter((l) => l.status === 'new').length;
-
   return (
     <div className="page-container">
       <div className="px-4 pt-12 pb-3">
@@ -55,32 +52,14 @@ export default function MasterLeads() {
           <div>
             <h1 className="ios-large-title">So'rovlar</h1>
             <p className="text-ios-subhead text-surface-600 mt-0.5">
-              {leads.length} ta mijoz murojaati
+              Sizga qiziqish bildirgan mijozlar
             </p>
           </div>
-          {newCount > 0 && (
-            <div className="flex items-center gap-1.5 bg-danger-50 text-danger-500 px-2.5 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-danger-500 animate-pulse" />
-              <span className="text-ios-footnote font-bold">{newCount} yangi</span>
+          {leads.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full">
+              <span className="text-ios-footnote font-bold">{leads.length}</span>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Filter segmented */}
-      <div className="px-4 mb-3">
-        <div className="ios-segmented w-full flex">
-          {(['all', 'new', 'contacted'] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`ios-segmented-item flex-1 ${
-                filter === f ? 'ios-segmented-item-active' : ''
-              }`}
-            >
-              {f === 'all' ? 'Barchasi' : f === 'new' ? 'Yangi' : "Bog'landi"}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -99,7 +78,7 @@ export default function MasterLeads() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : leads.length === 0 ? (
           <div className="text-center py-20">
             <div className="relative w-24 h-24 mx-auto mb-4">
               <div className="absolute inset-0 bg-primary-500/15 rounded-full blur-2xl" />
@@ -107,72 +86,94 @@ export default function MasterLeads() {
                 <Inbox className="w-11 h-11 text-primary-500" strokeWidth={1.8} />
               </div>
             </div>
-            <h3 className="text-ios-title-3 text-surface-900 mb-2">Murojaat yo'q</h3>
+            <h3 className="text-ios-title-3 text-surface-900 mb-2">Hali so'rovlar yo'q</h3>
             <p className="text-ios-subhead text-surface-600 max-w-xs mx-auto">
-              Mijozlar sizga murojaat qilganda shu yerda ko'rinadi
+              Mijozlar sizga qiziqish bildirganda shu yerda ko'rinadi
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {filtered.map((lead) => (
-              <div
-                key={lead.id}
-                className="bg-white rounded-ios-xl shadow-ios-card overflow-hidden active:scale-[0.99] transition-transform"
-              >
-                <div className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
-                        <span className="text-white font-semibold">
-                          {lead.client.name.charAt(0)}
-                        </span>
-                      </div>
-                      {lead.status === 'new' && (
-                        <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-danger-500 border-2 border-white" />
+            {leads.map((lead) => {
+              const phone = lead.client.phone;
+              const username = lead.client.username
+                ? lead.client.username.replace(/^@/, '')
+                : null;
+              return (
+                <div
+                  key={lead.id}
+                  className="bg-white rounded-ios-xl shadow-ios-card overflow-hidden"
+                >
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      {lead.client.photoUrl || lead.client.avatar ? (
+                        <img
+                          src={lead.client.photoUrl || lead.client.avatar || ''}
+                          alt={lead.client.name}
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-semibold">
+                            {lead.client.name.charAt(0)}
+                          </span>
+                        </div>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="text-ios-headline text-surface-900 truncate flex-1">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-ios-headline text-surface-900 truncate">
                           {lead.client.name}
                         </h3>
-                        <span
-                          className={`ios-chip !py-0.5 !px-2.5 !text-[11px] ${
-                            lead.status === 'new' ? 'bg-primary-50 text-primary-600' : 'chip-mint'
-                          }`}
-                        >
-                          {lead.status === 'new' ? 'Yangi' : "Bog'landi"}
-                        </span>
+                        {username && (
+                          <p className="text-ios-footnote text-surface-500">@{username}</p>
+                        )}
+                        {phone && (
+                          <p className="text-ios-footnote text-primary-500 font-medium flex items-center gap-1 mt-0.5">
+                            <Phone className="w-3 h-3" strokeWidth={2.2} />
+                            {phone}
+                          </p>
+                        )}
                       </div>
-                      <a
-                        href={`tel:${lead.client.phone}`}
-                        className="text-ios-footnote text-primary-500 font-medium flex items-center gap-1"
-                      >
-                        <Phone className="w-3 h-3" strokeWidth={2.2} />
-                        {lead.client.phone}
-                      </a>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-separator/30">
+                      <p className="text-ios-caption text-surface-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" strokeWidth={2.2} />
+                        {formatDate(lead.createdAt)}
+                      </p>
+                      <p className="text-ios-caption text-surface-600 font-medium truncate max-w-[55%]">
+                        {lead.service.name}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-separator/30">
-                    <p className="text-ios-caption text-surface-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" strokeWidth={2.2} />
-                      {formatDate(lead.createdAt)}
-                    </p>
-                    <p className="text-ios-caption text-surface-600 font-medium truncate max-w-[50%]">
-                      {lead.service.name}
-                    </p>
+                  <div className="grid grid-cols-2 border-t border-separator/30 divide-x divide-separator/30">
+                    <a
+                      href={phone ? `tel:${phone}` : undefined}
+                      aria-disabled={!phone}
+                      className={`flex items-center justify-center gap-1.5 py-3 text-ios-subhead font-semibold transition-colors ${
+                        phone
+                          ? 'text-primary-500 active:bg-primary-50'
+                          : 'text-surface-400 pointer-events-none'
+                      }`}
+                    >
+                      <Phone className="w-4 h-4" strokeWidth={2} />
+                      Qo'ng'iroq
+                    </a>
+                    <a
+                      href={username ? `https://t.me/${username}` : undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-disabled={!username}
+                      className={`flex items-center justify-center gap-1.5 py-3 text-ios-subhead font-semibold transition-colors ${
+                        username
+                          ? 'text-primary-500 active:bg-primary-50'
+                          : 'text-surface-400 pointer-events-none'
+                      }`}
+                    >
+                      <Send className="w-4 h-4" strokeWidth={2} />
+                      Telegram
+                    </a>
                   </div>
                 </div>
-                <a
-                  href={`tel:${lead.client.phone}`}
-                  className="flex items-center justify-center gap-1.5 py-3 border-t border-separator/30 text-ios-subhead font-semibold text-primary-500 active:bg-primary-50 transition-colors"
-                >
-                  <Phone className="w-4 h-4" strokeWidth={2} />
-                  Qo'ng'iroq qilish
-                  <ChevronRight className="w-4 h-4" />
-                </a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

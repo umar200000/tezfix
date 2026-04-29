@@ -19,4 +19,5 @@ coverage/
 .claude/
 *.db
 *.db-journal
+*.tsbuildinfo
 
