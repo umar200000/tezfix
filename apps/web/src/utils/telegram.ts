@@ -65,8 +65,14 @@ export function getInitUser(): TgUser | null {
 }
 
 export function isInTelegram(): boolean {
+  // Lenient: any Telegram WebApp context counts. Older/edge clients may have
+  // requestContact available even when initData is empty, so we don't gate on it here.
+  return !!getTelegramWebApp();
+}
+
+export function canRequestContact(): boolean {
   const tg = getTelegramWebApp();
-  return !!(tg && tg.initData && tg.initDataUnsafe?.user);
+  return !!(tg && typeof tg.requestContact === 'function');
 }
 
 /**

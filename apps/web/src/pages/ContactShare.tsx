@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore, type User } from '../hooks/useStore';
 import { api } from '../utils/api';
 import {
+  canRequestContact,
   getInitData,
   getInitUser,
   isInTelegram,
@@ -9,14 +10,11 @@ import {
   tgHaptic,
   tgReady,
 } from '../utils/telegram';
-import { Phone, Loader2, ShieldCheck, Lock, ChevronLeft } from 'lucide-react';
+import { Phone, Loader2, ShieldCheck, Lock, ChevronLeft, AlertCircle } from 'lucide-react';
 
 export default function ContactShare() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDevForm, setShowDevForm] = useState(false);
-  const [devName, setDevName] = useState('');
-  const [devPhone, setDevPhone] = useState('+998');
   const { setUser, setActiveRole, setOnboarded } = useStore();
 
   useEffect(() => {
@@ -40,82 +38,40 @@ export default function ContactShare() {
     setError(null);
     setLoading(true);
     try {
-      if (isInTelegram()) {
-        // 1) Authenticate via initData → creates/finds user by telegramId
-        const initData = getInitData();
-        const tgUser = getInitUser();
-        const authRes = await api.post<{ user: User }>('/auth/telegram', {
-          initData,
-          role,
-          devUser: tgUser ? { id: tgUser.id, first_name: tgUser.first_name, last_name: tgUser.last_name, username: tgUser.username, photo_url: tgUser.photo_url } : undefined,
-        });
-        let user = authRes.user;
-
-        // 2) If user already has phone (returning user), skip contact request
-        if (user.phone) {
-          finishLogin(user);
-          return;
-        }
-
-        // 3) Otherwise request phone via Telegram popup
-        const payload = await requestContactPayload();
-        if (payload) {
-          const contactRes = await api.post<{ user: User }>('/auth/share-contact', {
-            userId: user.id,
-            contactPayload: payload,
-          });
-          user = contactRes.user;
-        }
-        // Even if user declined contact, we still proceed — phone can be filled later from profile.
-        finishLogin(user);
-      } else {
-        // Dev mode (browser, no Telegram WebApp)
-        setShowDevForm(true);
+      if (!isInTelegram()) {
+        setError("Iltimos, ilovani Telegram bot orqali oching.");
+        tgHaptic('error');
+        return;
       }
+      if (!canRequestContact()) {
+        setError("Telegram ilovangizni yangilang — kontakt ulashish qo'llab-quvvatlanmaydi.");
+        tgHaptic('error');
+        return;
+      }
+
+      // 1) Trigger Telegram's native "Share contact" popup
+      const payload = await requestContactPayload();
+      if (!payload) {
+        setError("Kontakt ulashilmadi. Iltimos qayta urinib ko'ring.");
+        return;
+      }
+
+      // 2) One-shot login: verify signed payload server-side, upsert user, set role
+      const initData = getInitData();
+      const tgUser = getInitUser();
+      const res = await api.post<{ user: User }>('/auth/contact-login', {
+        contactPayload: payload,
+        role,
+        initData: initData || undefined,
+        // for clients on older API where requestContact returns nothing signed,
+        // we still pass initDataUnsafe.user as a hint (server only trusts signed data)
+        ...(tgUser ? {} : {}),
+      });
+
+      finishLogin(res.user);
     } catch (e: any) {
       setError(e?.message || 'Xatolik yuz berdi');
       tgHaptic('error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDevSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!devName || devPhone.length < 9) {
-      setError("Ism va to'g'ri telefon kiriting");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      const cleanPhone = devPhone.startsWith('+') ? devPhone : '+' + devPhone;
-      // Persistent dev telegramId so refreshing doesn't create a new user
-      const stored = localStorage.getItem('tezfix-dev-tgid');
-      const devTgId = stored || `dev_${cleanPhone.replace(/\D/g, '')}_${Math.floor(Math.random() * 1e6)}`;
-      if (!stored) localStorage.setItem('tezfix-dev-tgid', devTgId);
-
-      const [first, ...rest] = devName.trim().split(' ');
-      const last = rest.join(' ');
-
-      const authRes = await api.post<{ user: User }>('/auth/telegram', {
-        role,
-        devUser: { id: devTgId, first_name: first, last_name: last || undefined },
-      });
-      let user = authRes.user;
-
-      if (!user.phone) {
-        const contactRes = await api.post<{ user: User }>('/auth/share-contact', {
-          userId: user.id,
-          devPhone: cleanPhone,
-          devFirstName: first,
-          devLastName: last || undefined,
-        });
-        user = contactRes.user;
-      }
-      finishLogin(user);
-    } catch (e: any) {
-      setError(e?.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -147,8 +103,8 @@ export default function ContactShare() {
         </h1>
         <p className="text-ios-body text-surface-600 text-center max-w-xs mb-8">
           {role === 'master'
-            ? "Usta sifatida ro'yxatdan o'tish uchun kontakt ma'lumotlaringizni tasdiqlang"
-            : "Mijoz sifatida ro'yxatdan o'tish uchun kontakt ma'lumotlaringizni tasdiqlang"}
+            ? "Usta sifatida ro'yxatdan o'tish uchun Telegram kontaktingizni ulashing"
+            : "Mijoz sifatida ro'yxatdan o'tish uchun Telegram kontaktingizni ulashing"}
         </p>
 
         {/* Trust features */}
@@ -174,61 +130,29 @@ export default function ContactShare() {
         </div>
 
         {error && (
-          <div className="w-full max-w-sm mb-3 px-3 py-2 rounded-ios bg-danger-50 text-danger-600 text-ios-footnote">
-            {error}
+          <div className="w-full max-w-sm mb-3 px-3 py-2.5 rounded-ios bg-danger-50 text-danger-600 text-ios-footnote flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" strokeWidth={2.2} />
+            <span>{error}</span>
           </div>
         )}
 
-        {!showDevForm ? (
-          <button
-            onClick={handleShareContact}
-            disabled={loading}
-            className="ios-btn-primary w-full max-w-sm"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Yuklanmoqda...
-              </>
-            ) : (
-              <>
-                <Phone className="w-5 h-5" />
-                Kontaktni ulashish
-              </>
-            )}
-          </button>
-        ) : (
-          <form onSubmit={handleDevSubmit} className="w-full max-w-sm space-y-3">
-            <div className="text-ios-caption text-surface-500 text-center mb-1">
-              Brauzer rejimi — sinov uchun
-            </div>
-            <div className="field-card">
-              <p className="field-label text-surface-500">Ism Familiya</p>
-              <input
-                type="text"
-                value={devName}
-                onChange={(e) => setDevName(e.target.value)}
-                placeholder="Aziz Karimov"
-                className="w-full bg-transparent text-ios-body text-primary-700 placeholder:text-surface-400 outline-none font-medium"
-                required
-              />
-            </div>
-            <div className="field-card">
-              <p className="field-label text-surface-500">Telefon</p>
-              <input
-                type="tel"
-                value={devPhone}
-                onChange={(e) => setDevPhone(e.target.value)}
-                placeholder="+998901234567"
-                className="w-full bg-transparent text-ios-body text-primary-700 placeholder:text-surface-400 outline-none font-medium"
-                required
-              />
-            </div>
-            <button type="submit" disabled={loading} className="ios-btn-primary w-full">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Davom etish'}
-            </button>
-          </form>
-        )}
+        <button
+          onClick={handleShareContact}
+          disabled={loading}
+          className="ios-btn-primary w-full max-w-sm"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Yuklanmoqda...
+            </>
+          ) : (
+            <>
+              <Phone className="w-5 h-5" />
+              Kontaktni ulashish
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

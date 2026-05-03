@@ -183,6 +183,97 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   /**
+   * POST /api/auth/contact-login
+   * Body: { contactPayload: string, role?: "master"|"client", initData?: string }
+   *
+   * One-shot login flow used right after Telegram WebApp.requestContact() succeeds:
+   * verifies the signed contact payload, upserts the user by telegramId (taken from
+   * the payload's user_id), saves phone + name, optionally enriches with initData
+   * fields (username, photo_url) when present, and applies the role flag.
+   */
+  app.post<{
+    Body: {
+      contactPayload: string;
+      role?: 'master' | 'client';
+      initData?: string;
+    };
+  }>('/contact-login', async (request, reply) => {
+    const { contactPayload, role, initData } = request.body || ({} as any);
+    if (!contactPayload) {
+      return reply.status(400).send({ error: 'contactPayload required' });
+    }
+
+    const verified = verifyContactPayload(contactPayload);
+    if (!verified || !verified.user_id) {
+      return reply.status(401).send({ error: 'Invalid contact payload' });
+    }
+
+    const telegramId = String(verified.user_id);
+    const phone = verified.phone_number?.startsWith('+')
+      ? verified.phone_number
+      : '+' + (verified.phone_number ?? '');
+
+    // Optionally enrich from initData (username, photo_url)
+    let username: string | null = null;
+    let photoUrl: string | null = null;
+    let firstName = verified.first_name ?? null;
+    let lastName = verified.last_name ?? null;
+    if (initData) {
+      const tg = verifyInitData(initData);
+      if (tg && String(tg.id) === telegramId) {
+        username = tg.username ?? null;
+        photoUrl = tg.photo_url ?? null;
+        firstName = tg.first_name ?? firstName;
+        lastName = tg.last_name ?? lastName;
+      }
+    }
+
+    const name = buildName(firstName, lastName);
+    const roleData =
+      role === 'master'
+        ? { isMaster: true }
+        : role === 'client'
+        ? { isClient: true }
+        : {};
+
+    const existing = await prisma.user.findUnique({ where: { telegramId } });
+    let user;
+    if (!existing) {
+      user = await prisma.user.create({
+        data: {
+          telegramId,
+          firstName,
+          lastName,
+          name,
+          username,
+          phone,
+          photoUrl,
+          avatar: photoUrl,
+          role: role ?? null,
+          ...roleData,
+        },
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { telegramId },
+        data: {
+          firstName: firstName ?? existing.firstName,
+          lastName: lastName ?? existing.lastName,
+          name: name || existing.name,
+          username: username ?? existing.username,
+          phone: phone || existing.phone,
+          photoUrl: photoUrl ?? existing.photoUrl,
+          avatar: photoUrl ?? existing.avatar,
+          ...roleData,
+          ...(role ? { role } : {}),
+        },
+      });
+    }
+
+    return { user };
+  });
+
+  /**
    * GET /api/auth/user/:id — fetch user by id
    */
   app.get<{ Params: { id: string } }>('/user/:id', async (request, reply) => {
