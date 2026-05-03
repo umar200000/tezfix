@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,8 +10,10 @@ import {
   Zap,
   Key,
   Check,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react';
-import { getAdminToken, setAdminToken } from '../utils/api';
+import { api, getAdminToken, setAdminToken } from '../utils/api';
 
 const sidebarLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -23,19 +25,105 @@ const sidebarLinks = [
 ];
 
 export default function AdminLayout() {
-  const [tokenOpen, setTokenOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState(getAdminToken());
-  const [saved, setSaved] = useState(false);
+  const [authStatus, setAuthStatus] = useState<'unknown' | 'ok' | 'bad'>('unknown');
+  const [verifying, setVerifying] = useState(false);
+  const [tokenSavedToast, setTokenSavedToast] = useState(false);
 
-  const handleSaveToken = () => {
-    setAdminToken(tokenInput.trim());
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  // Verify token on mount and whenever it changes
+  const verifyToken = async () => {
+    if (!getAdminToken()) {
+      setAuthStatus('bad');
+      return;
+    }
+    setVerifying(true);
+    try {
+      // /banners/all is admin-protected
+      await api.get('/banners/all');
+      setAuthStatus('ok');
+    } catch {
+      setAuthStatus('bad');
+    } finally {
+      setVerifying(false);
+    }
   };
+
+  useEffect(() => {
+    verifyToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSaveToken = async () => {
+    setAdminToken(tokenInput.trim());
+    setTokenSavedToast(true);
+    window.setTimeout(() => setTokenSavedToast(false), 1500);
+    await verifyToken();
+  };
+
+  // Token gate: if no valid token, lock the screen with a setup card.
+  if (authStatus !== 'ok') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-primary-50 to-gray-50">
+        <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-7">
+          <div className="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center mb-4">
+            <ShieldCheck className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">TezFix Admin</h1>
+          <p className="text-sm text-gray-500 mt-1 mb-5">
+            Davom etish uchun admin tokenni kiriting.
+          </p>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Admin token</label>
+          <input
+            type="password"
+            value={tokenInput}
+            onChange={(e) => setTokenInput(e.target.value)}
+            placeholder="ADMIN_TOKEN"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveToken();
+            }}
+            className="input"
+          />
+
+          {authStatus === 'bad' && getAdminToken() && (
+            <p className="text-xs text-red-600 mt-2">Token noto'g'ri. Qayta kiriting.</p>
+          )}
+
+          <button
+            onClick={handleSaveToken}
+            disabled={verifying || !tokenInput.trim()}
+            className="btn-primary w-full mt-4 disabled:opacity-50"
+          >
+            {verifying ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Tekshirilmoqda...
+              </>
+            ) : tokenSavedToast ? (
+              <>
+                <Check className="w-4 h-4" />
+                Saqlandi
+              </>
+            ) : (
+              <>
+                <Key className="w-4 h-4" />
+                Kirish
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Token <code>/opt/tezfix/apps/api/.env</code> faylidagi <code>ADMIN_TOKEN</code> bilan
+            mos bo'lishi kerak. Saqlangach, bu qurilmada qayta so'ramaymiz.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 fixed h-full flex flex-col">
         <div className="px-6 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -67,32 +155,16 @@ export default function AdminLayout() {
 
         <div className="p-3 border-t border-gray-100 space-y-2">
           <button
-            onClick={() => setTokenOpen(!tokenOpen)}
+            onClick={() => {
+              setAdminToken('');
+              setAuthStatus('bad');
+              setTokenInput('');
+            }}
             className="sidebar-link sidebar-link-inactive w-full"
           >
             <Key className="w-5 h-5" />
-            Admin token
+            Tokenni o'chirish
           </button>
-          {tokenOpen && (
-            <div className="px-2 space-y-2">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                placeholder="ADMIN_TOKEN"
-                className="input"
-              />
-              <button onClick={handleSaveToken} className="btn-primary w-full">
-                {saved ? (
-                  <>
-                    <Check className="w-4 h-4" /> Saqlandi
-                  </>
-                ) : (
-                  'Saqlash'
-                )}
-              </button>
-            </div>
-          )}
           <p className="text-xs text-gray-400 text-center">TezFix Admin v1.0</p>
         </div>
       </aside>

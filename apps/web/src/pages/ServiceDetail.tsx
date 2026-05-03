@@ -62,15 +62,21 @@ export default function ServiceDetail() {
   }, [id, user]);
 
   const handleCall = async () => {
-    if (!user || !service || callSent) return;
-    try {
-      await api.post('/leads/create', {
-        serviceId: service.id,
-        clientId: user.id,
-      });
+    if (!user || !service) return;
+    // Fire-and-forget the lead so the master gets a Telegram notification + the
+    // request shows up in their "So'rovlar" list. We don't block the dial on it.
+    if (!callSent) {
+      api
+        .post('/leads/create', {
+          serviceId: service.id,
+          clientId: user.id,
+        })
+        .catch((err) => console.error(err));
       setCallSent(true);
-    } catch (err) {
-      console.error(err);
+    }
+    // Open the phone dialer with the master's number.
+    if (service.owner.phone) {
+      window.location.href = `tel:${service.owner.phone}`;
     }
   };
 
@@ -295,15 +301,24 @@ export default function ServiceDetail() {
               strokeWidth={2.2}
             />
           </button>
-          {callSent ? (
+          {service.owner.phone ? (
+            <button onClick={handleCall} className="ios-btn-primary flex-1">
+              {callSent ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <Phone className="w-5 h-5" />
+              )}
+              {callSent ? "Qayta qo'ng'iroq" : "Qo'ng'iroq qilish"}
+            </button>
+          ) : callSent ? (
             <div className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-mint-100 rounded-ios-lg">
               <CheckCircle2 className="w-5 h-5 text-mint-600" />
               <span className="text-ios-headline text-mint-700">So'rov yuborildi!</span>
             </div>
           ) : (
-            <button onClick={handleCall} className="ios-btn-primary flex-1">
+            <button onClick={handleCall} className="ios-btn-primary flex-1" disabled={!user}>
               <Phone className="w-5 h-5" />
-              Qo'ng'iroq qilish
+              Bog'lanish
             </button>
           )}
         </div>
