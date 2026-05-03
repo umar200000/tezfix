@@ -16,9 +16,13 @@ export PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.npm-global/bin:$(npm root -g 2>
 
 cd "$INSTALL_DIR"
 
-# ── 1. Stop API (release Prisma native bindings) ─────────────────────────────
+# ── 1. Stop API (release Prisma native bindings + free port 3000) ────────────
 log "Stop API"
 pm2 stop tezfix-api 2>/dev/null || true
+# Kill any orphan node process still holding port 3000 (e.g., from a prior
+# half-failed deploy). pm2 only manages its own children, so a stray node
+# binding 3000 would silently make the next pm2 start fail with EADDRINUSE.
+sudo fuser -k 3000/tcp 2>/dev/null || true
 
 # ── 2. Install dependencies ───────────────────────────────────────────────────
 log "npm ci"
