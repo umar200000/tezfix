@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
 import { api } from '../../utils/api';
-import { Heart, MapPin, Star } from 'lucide-react';
+import { Heart, MapPin, Star, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Service {
   id: number;
@@ -15,24 +15,47 @@ export default function ClientFavorites() {
   const { user } = useStore();
   const [favorites, setFavorites] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    try {
+      const data = await api.get<Service[]>(`/favorites/user/${user.id}`);
+      setFavorites(data);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    api
-      .get<Service[]>(`/favorites/user/${user.id}`)
-      .then(setFavorites)
-      .finally(() => setLoading(false));
-  }, [user]);
+    load();
+  }, [load]);
 
   return (
     <div className="page-container">
-      <div className="px-4 pt-12 pb-3">
-        <h1 className="ios-large-title">Saqlangan</h1>
-        <p className="text-ios-subhead text-surface-600 mt-0.5">
-          {favorites.length > 0
-            ? `${favorites.length} ta ustaxona saqlangan`
-            : 'Hali saqlangan ustaxona yo\'q'}
-        </p>
+      <div className="px-4 pt-12 pb-3 flex items-start justify-between">
+        <div>
+          <h1 className="ios-large-title">Saqlangan</h1>
+          <p className="text-ios-subhead text-surface-600 mt-0.5">
+            {favorites.length > 0
+              ? `${favorites.length} ta ustaxona saqlangan`
+              : "Hali saqlangan ustaxona yo'q"}
+          </p>
+        </div>
+        <button
+          onClick={load}
+          disabled={refreshing}
+          className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60"
+          aria-label="Yangilash"
+        >
+          {refreshing ? (
+            <Loader2 className="w-5 h-5 text-primary-700 animate-spin" strokeWidth={2} />
+          ) : (
+            <RefreshCw className="w-5 h-5 text-primary-700" strokeWidth={2} />
+          )}
+        </button>
       </div>
 
       <div className="px-4">

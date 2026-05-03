@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
 import { api } from '../../utils/api';
@@ -10,6 +10,8 @@ import {
   Eye,
   Wrench,
   TrendingUp,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { ServiceHeroIcon } from '../../utils/categoryIcons';
 
@@ -26,14 +28,23 @@ export default function MasterHome() {
   const { user } = useStore();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    try {
+      const data = await api.get<Service[]>(`/services/owner/${user.id}`);
+      setServices(data);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-    api
-      .get<Service[]>(`/services/owner/${user.id}`)
-      .then(setServices)
-      .finally(() => setLoading(false));
-  }, [user]);
+    load();
+  }, [load]);
 
   const activeCount = services.filter((s) => s.isActive).length;
   const avgRating =
@@ -50,10 +61,32 @@ export default function MasterHome() {
             <p className="text-ios-subhead text-surface-600">Salom,</p>
             <h1 className="ios-large-title mt-0.5">{user?.name?.split(' ')[0]}</h1>
           </div>
-          <div className="w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center shadow-ios-card">
-            <span className="text-white font-semibold text-ios-body">
-              {user?.name?.charAt(0)}
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={load}
+              disabled={refreshing}
+              className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60"
+              aria-label="Yangilash"
+            >
+              {refreshing ? (
+                <Loader2 className="w-5 h-5 text-primary-700 animate-spin" strokeWidth={2} />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-primary-700" strokeWidth={2} />
+              )}
+            </button>
+            {user?.photoUrl || user?.avatar ? (
+              <img
+                src={user.photoUrl || user.avatar || ''}
+                alt={user.name}
+                className="w-11 h-11 rounded-full object-cover shadow-ios-card"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center shadow-ios-card">
+                <span className="text-white font-semibold text-ios-body">
+                  {user?.name?.charAt(0)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

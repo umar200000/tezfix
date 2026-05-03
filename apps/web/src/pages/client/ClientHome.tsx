@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
 import { api } from '../../utils/api';
-import { ChevronRight, MapPin, Star, Bell, Wrench, Heart } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import { ChevronRight, MapPin, Star, Wrench, Heart, RefreshCw, Loader2 } from 'lucide-react';
 import { getCategoryIcon, ServiceHeroIcon } from '../../utils/categoryIcons';
 
 interface ServiceCategory {
@@ -48,35 +52,41 @@ export default function ClientHome() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [quickServices, setQuickServices] = useState<QuickService[]>([]);
   const [favIds, setFavIds] = useState<Set<number>>(new Set());
-  const [bannerIdx, setBannerIdx] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    api.get<ServiceCategory[]>('/categories').then(setCategories).catch(() => {});
-    api.get<Service[]>('/services').then(setServices).catch(() => {});
-    api.get<Banner[]>('/banners').then(setBanners).catch(() => {});
-    api.get<QuickService[]>('/quick-services').then(setQuickServices).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    api
-      .get<{ id: number }[]>(`/favorites/user/${user.id}`)
-      .then((favs) => setFavIds(new Set(favs.map((f) => f.id))))
-      .catch(() => {});
+  const loadAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [cats, srvs, bnrs, qs] = await Promise.all([
+        api.get<ServiceCategory[]>('/categories').catch(() => [] as ServiceCategory[]),
+        api.get<Service[]>('/services').catch(() => [] as Service[]),
+        api.get<Banner[]>('/banners').catch(() => [] as Banner[]),
+        api.get<QuickService[]>('/quick-services').catch(() => [] as QuickService[]),
+      ]);
+      setCategories(cats);
+      setServices(srvs);
+      setBanners(bnrs);
+      setQuickServices(qs);
+      if (user) {
+        const favs = await api
+          .get<{ id: number }[]>(`/favorites/user/${user.id}`)
+          .catch(() => [] as { id: number }[]);
+        setFavIds(new Set(favs.map((f) => f.id)));
+      }
+    } finally {
+      setRefreshing(false);
+    }
   }, [user]);
 
   useEffect(() => {
-    if (banners.length <= 1) return;
-    const timer = setInterval(() => setBannerIdx((i) => (i + 1) % banners.length), 4500);
-    return () => clearInterval(timer);
-  }, [banners.length]);
+    loadAll();
+  }, [loadAll]);
 
   const toggleFavorite = async (serviceId: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) return;
     const wasFav = favIds.has(serviceId);
-    // optimistic
     const next = new Set(favIds);
     if (wasFav) next.delete(serviceId);
     else next.add(serviceId);
@@ -93,11 +103,9 @@ export default function ClientHome() {
         setFavIds(corrected);
       }
     } catch {
-      setFavIds(favIds); // revert
+      setFavIds(favIds);
     }
   };
-
-  const safeBanners = useMemo(() => banners, [banners]);
 
   return (
     <div className="page-container">
@@ -109,8 +117,17 @@ export default function ClientHome() {
             <h1 className="ios-large-title mt-0.5">{user?.name?.split(' ')[0]}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform">
-              <Bell className="w-5 h-5 text-primary-700" strokeWidth={2} />
+            <button
+              onClick={loadAll}
+              disabled={refreshing}
+              className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60"
+              aria-label="Yangilash"
+            >
+              {refreshing ? (
+                <Loader2 className="w-5 h-5 text-primary-700 animate-spin" strokeWidth={2} />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-primary-700" strokeWidth={2} />
+              )}
             </button>
             {user?.photoUrl || user?.avatar ? (
               <img
@@ -130,57 +147,52 @@ export default function ClientHome() {
       </div>
 
       <div className="px-4 space-y-6">
-        {/* Banner carousel — only render when banners exist */}
-        {safeBanners.length > 0 && (
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-ios-lg shadow-ios-card">
-              <div
-                className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                style={{ transform: `translateX(-${bannerIdx * 100}%)` }}
+        {/* Banner carousel — Swiper, touch-swipeable, autoplay */}
+        {banners.length > 0 && (
+          <div className="relative banner-swiper">
+            <div className="rounded-ios-lg overflow-hidden shadow-ios-card">
+              <Swiper
+                modules={[Pagination, Autoplay]}
+                slidesPerView={1}
+                pagination={banners.length > 1 ? { clickable: true } : false}
+                autoplay={
+                  banners.length > 1
+                    ? { delay: 4500, disableOnInteraction: false }
+                    : false
+                }
+                loop={banners.length > 1}
               >
-                {safeBanners.map((b) => (
-                  <a
-                    key={b.id}
-                    href={b.link || undefined}
-                    target={b.link ? '_blank' : undefined}
-                    rel="noreferrer"
-                    className="min-w-full relative h-[160px] overflow-hidden"
-                  >
-                    <img
-                      src={b.image}
-                      alt={b.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4">
-                      <h3 className="text-white font-bold text-[20px] leading-tight">
-                        {b.title}
-                      </h3>
-                      {b.subtitle && (
-                        <p className="text-white/90 text-ios-subhead mt-0.5">{b.subtitle}</p>
-                      )}
-                    </div>
-                  </a>
+                {banners.map((b) => (
+                  <SwiperSlide key={b.id}>
+                    <a
+                      href={b.link || undefined}
+                      target={b.link ? '_blank' : undefined}
+                      rel="noreferrer"
+                      className="block relative h-[160px] overflow-hidden"
+                    >
+                      <img
+                        src={b.image}
+                        alt={b.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-4 pb-7">
+                        <h3 className="text-white font-bold text-[20px] leading-tight">
+                          {b.title}
+                        </h3>
+                        {b.subtitle && (
+                          <p className="text-white/90 text-ios-subhead mt-0.5">{b.subtitle}</p>
+                        )}
+                      </div>
+                    </a>
+                  </SwiperSlide>
                 ))}
-              </div>
+              </Swiper>
             </div>
-            {safeBanners.length > 1 && (
-              <div className="flex justify-center gap-1.5 mt-3">
-                {safeBanners.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setBannerIdx(i)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === bannerIdx ? 'w-6 bg-primary-500' : 'w-1.5 bg-surface-300'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         )}
 
-        {/* Quick Services (admin-managed) */}
+        {/* Quick Services */}
         {quickServices.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -265,7 +277,6 @@ export default function ClientHome() {
                     return [];
                   }
                 })();
-                const cover = images[0];
                 const isFav = favIds.has(service.id);
                 return (
                   <Link
@@ -273,11 +284,11 @@ export default function ClientHome() {
                     to={`/service/${service.id}`}
                     className="block bg-white rounded-ios-xl overflow-hidden shadow-ios-card active:scale-[0.99] transition-all"
                   >
-                    {/* Cover image */}
+                    {/* Cover image (first one). Full gallery is swipeable on the detail page. */}
                     <div className="relative h-44 bg-primary-500">
-                      {cover ? (
+                      {images[0] ? (
                         <img
-                          src={cover}
+                          src={images[0]}
                           alt={service.name}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
@@ -286,12 +297,12 @@ export default function ClientHome() {
                           <ServiceHeroIcon className="w-20 h-20 text-white/30" strokeWidth={1.5} />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
                       {/* Favorite button */}
                       <button
                         onClick={(e) => toggleFavorite(service.id, e)}
-                        className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-ios flex items-center justify-center active:scale-90 transition-transform shadow-ios-card"
+                        className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white/90 backdrop-blur-ios flex items-center justify-center active:scale-90 transition-transform shadow-ios-card"
                         aria-label="Sevimli"
                       >
                         <Heart
@@ -303,7 +314,7 @@ export default function ClientHome() {
                       </button>
 
                       {/* Rating chip */}
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 backdrop-blur-ios px-2.5 py-1 rounded-full shadow-ios-card">
+                      <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-ios px-2.5 py-1 rounded-full shadow-ios-card">
                         <Star className="w-3.5 h-3.5 text-mint-600 fill-mint-600" />
                         <span className="text-ios-footnote font-bold text-mint-700">
                           {service.rating.toFixed(1)}
@@ -312,7 +323,7 @@ export default function ClientHome() {
 
                       {/* Image counter */}
                       {images.length > 1 && (
-                        <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-ios text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                        <div className="absolute bottom-3 right-3 bg-black/55 backdrop-blur-ios text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
                           1/{images.length}
                         </div>
                       )}

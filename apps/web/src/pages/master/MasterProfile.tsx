@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../../hooks/useStore';
+import { useStore, type User as UserType } from '../../hooks/useStore';
 import { api } from '../../utils/api';
 import {
   User,
@@ -15,17 +15,19 @@ import {
   Globe,
   Car,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function MasterProfile() {
   const { user, logout, setUser, setActiveRole } = useStore();
   const [switching, setSwitching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSwitchToClient = async () => {
     if (!user) return;
     setSwitching(true);
     try {
-      const res = await api.post<{ user: any }>('/auth/set-role', {
+      const res = await api.post<{ user: UserType }>('/auth/set-role', {
         userId: user.id,
         role: 'client',
       });
@@ -36,10 +38,33 @@ export default function MasterProfile() {
     }
   };
 
+  const refresh = async () => {
+    if (!user) return;
+    setRefreshing(true);
+    try {
+      const res = await api.get<{ user: UserType }>(`/auth/user/${user.id}`);
+      setUser(res.user);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="page-container">
-      <div className="px-4 pt-12 pb-3">
+      <div className="px-4 pt-12 pb-3 flex items-start justify-between">
         <h1 className="ios-large-title">Profil</h1>
+        <button
+          onClick={refresh}
+          disabled={refreshing}
+          className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60"
+          aria-label="Yangilash"
+        >
+          {refreshing ? (
+            <Loader2 className="w-5 h-5 text-primary-700 animate-spin" strokeWidth={2} />
+          ) : (
+            <RefreshCw className="w-5 h-5 text-primary-700" strokeWidth={2} />
+          )}
+        </button>
       </div>
 
       <div className="px-4 space-y-5">

@@ -178,3 +178,33 @@
     @apply animate-shimmer rounded-ios;
   }
 }
+
+/* Swiper hero / banner pagination — white dots on dark imagery */
+.service-hero-swiper .swiper-pagination,
+.banner-swiper .swiper-pagination {
+  bottom: 10px !important;
+}
+.service-hero-swiper .swiper-pagination-bullet,
+.banner-swiper .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px !important;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.service-hero-swiper .swiper-pagination-bullet-active,
+.banner-swiper .swiper-pagination-bullet-active {
+  background: #ffffff;
+  width: 24px;
+  border-radius: 9999px;
+}
+
+/* Highlight ring for newly arrived lead cards */
+@keyframes lead-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 58, 82, 0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(31, 58, 82, 0); }
+}
+.lead-new {
+  animation: lead-pulse 1.6s ease-out infinite;
+}

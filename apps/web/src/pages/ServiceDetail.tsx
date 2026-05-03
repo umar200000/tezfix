@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
 import { api } from '../utils/api';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 import {
   ChevronLeft,
   Phone,
@@ -107,37 +111,29 @@ export default function ServiceDetail() {
 
   return (
     <div className="min-h-screen pb-28">
-      {/* Hero / image carousel */}
-      <div className="relative h-[280px] bg-primary-500 overflow-hidden">
+      {/* Hero / image carousel — touch-swipeable */}
+      <div className="relative h-[280px] bg-primary-500 overflow-hidden service-hero-swiper">
         {images.length > 0 ? (
           <>
-            <div
-              className="flex h-full transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${imageIdx * 100}%)` }}
+            <Swiper
+              modules={[Pagination]}
+              slidesPerView={1}
+              pagination={images.length > 1 ? { clickable: true } : false}
+              onSlideChange={(s) => setImageIdx(s.activeIndex)}
+              initialSlide={imageIdx}
+              className="h-full w-full"
             >
               {images.map((src) => (
-                <img
-                  key={src}
-                  src={src}
-                  alt={service.name}
-                  className="min-w-full h-full object-cover"
-                />
-              ))}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none" />
-            {images.length > 1 && (
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setImageIdx(i)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === imageIdx ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
-                    }`}
+                <SwiperSlide key={src} className="h-full">
+                  <img
+                    src={src}
+                    alt={service.name}
+                    className="w-full h-full object-cover"
                   />
-                ))}
-              </div>
-            )}
+                </SwiperSlide>
+              ))}
+            </Swiper>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none" />
           </>
         ) : (
           <>

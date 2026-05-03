@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../utils/api';
-import { Search, MapPin, Star, X, SlidersHorizontal } from 'lucide-react';
+import { Search, MapPin, Star, X, SlidersHorizontal, RefreshCw, Loader2 } from 'lucide-react';
 import { ServiceHeroIcon } from '../../utils/categoryIcons';
 
 interface Service {
@@ -51,8 +51,20 @@ export default function ClientSearch() {
   return (
     <div className="page-container">
       {/* Large title */}
-      <div className="px-4 pt-12 pb-3">
+      <div className="px-4 pt-12 pb-3 flex items-start justify-between">
         <h1 className="ios-large-title">Qidiruv</h1>
+        <button
+          onClick={() => fetchServices()}
+          disabled={loading}
+          className="w-10 h-10 rounded-full bg-white shadow-ios-card flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60"
+          aria-label="Yangilash"
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 text-primary-700 animate-spin" strokeWidth={2} />
+          ) : (
+            <RefreshCw className="w-5 h-5 text-primary-700" strokeWidth={2} />
+          )}
+        </button>
       </div>
 
       {/* Search bar */}
