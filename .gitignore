@@ -17,6 +17,7 @@ Thumbs.db
 .idea/
 coverage/
 .claude/
+.claude-tmp/
 *.db
 *.db-journal
 *.tsbuildinfo

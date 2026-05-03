@@ -11,25 +11,57 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, linux, tezfix]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_DIR: /opt/tezfix
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Sync into /opt/tezfix
+      - name: Set up SSH key & known_hosts
         run: |
-          rsync -a --delete \
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          if [ -n "${{ secrets.SSH_KNOWN_HOSTS }}" ]; then
+            echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Rsync working tree to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_ed25519 -o UserKnownHostsFile=~/.ssh/known_hosts" \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='node_modules' \
             --exclude='apps/*/node_modules' \
             --exclude='apps/*/dist' \
+            --exclude='apps/api/uploads' \
+            --exclude='apps/api/prisma/dev.db*' \
             --exclude='.env' \
             --exclude='*.db' \
             --exclude='*.db-journal' \
-            "$GITHUB_WORKSPACE/" /opt/tezfix/
+            --exclude='.claude/' \
+            --exclude='.claude-tmp/' \
+            --exclude='*.tsbuildinfo' \
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/"
 
-      - name: Run deploy script
-        run: bash /opt/tezfix/deploy/deploy.sh
+      - name: Run deploy script on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "$SSH_USER@$SSH_HOST" \
+            "bash $DEPLOY_DIR/deploy/deploy.sh"
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
