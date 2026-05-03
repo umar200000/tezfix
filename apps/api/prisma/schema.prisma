@@ -102,6 +102,19 @@ model Banner {
   @@map("banners")
 }
 
+model Notification {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  audience  String   @default("all") // "all" | "masters" | "clients"
+  isActive  Boolean  @default(true) @map("is_active")
+  sentToBot Boolean  @default(false) @map("sent_to_bot")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notifications")
+}
+
 model QuickService {
   id         Int      @id @default(autoincrement())
   name       String

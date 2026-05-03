@@ -6,6 +6,8 @@ import ServicesPage from './pages/ServicesPage';
 import LeadsPage from './pages/LeadsPage';
 import BannersPage from './pages/BannersPage';
 import QuickServicesPage from './pages/QuickServicesPage';
+import NotificationsPage from './pages/NotificationsPage';
+import BroadcastPage from './pages/BroadcastPage';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/banners" element={<BannersPage />} />
         <Route path="/quick-services" element={<QuickServicesPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/broadcast" element={<BroadcastPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

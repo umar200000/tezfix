@@ -8,6 +8,7 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import { ChevronRight, MapPin, Star, Wrench, Heart, RefreshCw, Loader2 } from 'lucide-react';
 import { getCategoryIcon, ServiceHeroIcon } from '../../utils/categoryIcons';
+import { useT, categoryName } from '../../utils/i18n';
 
 interface ServiceCategory {
   id: number;
@@ -45,7 +46,8 @@ interface QuickService {
 }
 
 export default function ClientHome() {
-  const { user } = useStore();
+  const { user, language } = useStore();
+  const t = useT();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -113,7 +115,7 @@ export default function ClientHome() {
       <div className="px-4 pt-12 pb-3">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-ios-subhead text-surface-600">Assalomu alaykum</p>
+            <p className="text-ios-subhead text-surface-600">{t('home.greeting')}</p>
             <h1 className="ios-large-title mt-0.5">{user?.name?.split(' ')[0]}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -196,7 +198,7 @@ export default function ClientHome() {
         {quickServices.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-ios-title-3 text-surface-900">Tez xizmatlar</h2>
+              <h2 className="text-ios-title-3 text-surface-900">{t('home.quickServices')}</h2>
             </div>
             <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1 -mx-4 px-4">
               {quickServices.map((qs) => {
@@ -223,12 +225,12 @@ export default function ClientHome() {
         {/* Categories */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-ios-title-3 text-surface-900">Kategoriyalar</h2>
+            <h2 className="text-ios-title-3 text-surface-900">{t('home.categories')}</h2>
             <Link
               to="/categories"
               className="text-ios-subhead text-primary-500 font-medium flex items-center"
             >
-              Barchasi
+              {t('common.all')}
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -245,7 +247,7 @@ export default function ClientHome() {
                     <Icon className="w-[26px] h-[26px] text-primary-500" strokeWidth={1.8} />
                   </div>
                   <span className="text-ios-caption text-surface-700 text-center leading-tight font-medium line-clamp-2 w-[76px]">
-                    {cat.name}
+                    {categoryName(language, cat.slug)}
                   </span>
                 </button>
               );
@@ -256,8 +258,8 @@ export default function ClientHome() {
         {/* Services list — bigger cards with images */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-ios-title-3 text-surface-900">Ustaxonalar</h2>
-            <span className="text-ios-footnote text-surface-600">{services.length} ta</span>
+            <h2 className="text-ios-title-3 text-surface-900">{t('home.workshops')}</h2>
+            <span className="text-ios-footnote text-surface-600">{services.length}</span>
           </div>
 
           {services.length === 0 ? (
@@ -265,7 +267,7 @@ export default function ClientHome() {
               <div className="w-14 h-14 rounded-ios-lg bg-primary-50 flex items-center justify-center mx-auto mb-3">
                 <Wrench className="w-6 h-6 text-primary-500" />
               </div>
-              <p className="text-ios-subhead text-surface-600">Hali ustaxonalar yo'q</p>
+              <p className="text-ios-subhead text-surface-600">{t('home.empty.workshops')}</p>
             </div>
           ) : (
             <div className="space-y-4">

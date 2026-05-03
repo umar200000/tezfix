@@ -14,6 +14,8 @@ import { userRoutes } from './routes/users.js';
 import { uploadRoutes } from './routes/upload.js';
 import { bannerRoutes } from './routes/banners.js';
 import { quickServiceRoutes } from './routes/quickServices.js';
+import { notificationRoutes } from './routes/notifications.js';
+import { broadcastRoutes } from './routes/broadcast.js';
 
 const prisma = new PrismaClient();
 const app = Fastify({ logger: true });
@@ -43,6 +45,8 @@ await app.register(userRoutes, { prefix: '/api/users' });
 await app.register(uploadRoutes, { prefix: '/api/upload' });
 await app.register(bannerRoutes, { prefix: '/api/banners' });
 await app.register(quickServiceRoutes, { prefix: '/api/quick-services' });
+await app.register(notificationRoutes, { prefix: '/api/notifications' });
+await app.register(broadcastRoutes, { prefix: '/api/broadcast' });
 
 // Health check
 app.get('/api/health', async () => ({ status: 'ok' }));

@@ -274,6 +274,28 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   /**
+   * POST /api/auth/admin-login
+   * Body: { username, password }
+   * Returns the ADMIN_TOKEN if credentials match the env-configured admin account.
+   */
+  app.post<{ Body: { username: string; password: string } }>(
+    '/admin-login',
+    async (request, reply) => {
+      const { username, password } = request.body || ({} as any);
+      const expectedUser = process.env.ADMIN_USERNAME || '';
+      const expectedPwd = process.env.ADMIN_PASSWORD || '';
+      const adminToken = process.env.ADMIN_TOKEN || '';
+      if (!expectedUser || !expectedPwd || !adminToken) {
+        return reply.status(503).send({ error: 'Admin auth not configured' });
+      }
+      if (username !== expectedUser || password !== expectedPwd) {
+        return reply.status(401).send({ error: "Login yoki parol noto'g'ri" });
+      }
+      return { token: adminToken };
+    }
+  );
+
+  /**
    * GET /api/auth/user/:id — fetch user by id
    */
   app.get<{ Params: { id: string } }>('/user/:id', async (request, reply) => {

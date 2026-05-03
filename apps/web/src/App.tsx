@@ -18,6 +18,9 @@ import MasterLeads from './pages/master/MasterLeads';
 import MasterProfile from './pages/master/MasterProfile';
 import CreateService from './pages/master/CreateService';
 import EditService from './pages/master/EditService';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
+import Placeholder from './pages/Placeholder';
 
 export default function App() {
   const { user, onboarded, activeRole } = useStore();
@@ -38,6 +41,18 @@ export default function App() {
   const role: 'master' | 'client' =
     activeRole ?? (user.isMaster ? 'master' : user.isClient ? 'client' : 'client');
 
+  // Shared routes (available in both modes)
+  const sharedRoutes = (
+    <>
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/settings/language" element={<Settings />} />
+      <Route path="/settings/general" element={<Placeholder titleKey="profile.action.settings" />} />
+      <Route path="/settings/privacy" element={<Placeholder titleKey="profile.action.privacy" />} />
+      <Route path="/settings/help" element={<Placeholder titleKey="profile.action.help" />} />
+      <Route path="/settings/rate" element={<Placeholder titleKey="profile.action.rate" />} />
+    </>
+  );
+
   if (role === 'master') {
     return (
       <Routes>
@@ -49,6 +64,7 @@ export default function App() {
         <Route path="/service/create" element={<CreateService />} />
         <Route path="/service/edit/:id" element={<EditService />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
+        {sharedRoutes}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -65,6 +81,7 @@ export default function App() {
       <Route path="/service/:id" element={<ServiceDetail />} />
       <Route path="/quick-service/:id" element={<QuickServiceDetail />} />
       <Route path="/categories" element={<AllCategories />} />
+      {sharedRoutes}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

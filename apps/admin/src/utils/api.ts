@@ -31,6 +31,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+async function unauthedRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: any) =>
@@ -40,6 +52,9 @@ export const api = {
   patch: <T>(path: string, body: any) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  // Login flows: don't send (and shouldn't require) the admin token.
+  postUnauthed: <T>(path: string, body: any) =>
+    unauthedRequest<T>(path, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export async function uploadImage(file: File): Promise<string> {

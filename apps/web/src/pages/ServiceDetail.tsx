@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
 import { api } from '../utils/api';
+import { useT } from '../utils/i18n';
+import { categoryName } from '../utils/i18n';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -41,7 +43,8 @@ interface ServiceData {
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, activeRole } = useStore();
+  const { user, activeRole, language } = useStore();
+  const t = useT();
   const [service, setService] = useState<ServiceData | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [callSent, setCallSent] = useState(false);
@@ -203,31 +206,31 @@ export default function ServiceDetail() {
               <div className="flex items-center justify-center gap-1 text-primary-500 mb-1">
                 <Award className="w-4 h-4" strokeWidth={2.2} />
               </div>
-              <p className="text-ios-footnote font-semibold text-primary-700">Tekshirilgan</p>
-              <p className="text-ios-caption text-surface-500">Usta</p>
+              <p className="text-ios-footnote font-semibold text-primary-700">{t('svc.verified')}</p>
+              <p className="text-ios-caption text-surface-500">{t('svc.master')}</p>
             </div>
             <div className="w-px h-10 bg-separator" />
             <div className="flex-1 text-center">
               <div className="flex items-center justify-center gap-1 text-mint-600 mb-1">
                 <Clock className="w-4 h-4" strokeWidth={2.2} />
               </div>
-              <p className="text-ios-footnote font-semibold text-primary-700">Tez javob</p>
-              <p className="text-ios-caption text-surface-500">~5 daqiqa</p>
+              <p className="text-ios-footnote font-semibold text-primary-700">{t('svc.fastReply')}</p>
+              <p className="text-ios-caption text-surface-500">{t('svc.fastReply.sub')}</p>
             </div>
             <div className="w-px h-10 bg-separator" />
             <div className="flex-1 text-center">
               <div className="flex items-center justify-center gap-1 text-primary-500 mb-1">
                 <Heart className="w-4 h-4" strokeWidth={2.2} />
               </div>
-              <p className="text-ios-footnote font-semibold text-primary-700">Mashhur</p>
-              <p className="text-ios-caption text-surface-500">Mijozlar</p>
+              <p className="text-ios-footnote font-semibold text-primary-700">{t('svc.popular')}</p>
+              <p className="text-ios-caption text-surface-500">{t('svc.popular.sub')}</p>
             </div>
           </div>
         </div>
 
         {service.bio && (
           <div className="mt-4">
-            <p className="ios-section-header">Tavsif</p>
+            <p className="ios-section-header">{t('svc.about')}</p>
             <div className="bg-white rounded-ios-xl p-4 shadow-ios-card">
               <p className="text-ios-body text-surface-800 leading-relaxed">
                 {service.bio}
@@ -238,13 +241,13 @@ export default function ServiceDetail() {
 
         {serviceCategories.length > 0 && (
           <div className="mt-4">
-            <p className="ios-section-header">Xizmatlar</p>
+            <p className="ios-section-header">{t('svc.services')}</p>
             <div className="bg-white rounded-ios-xl p-4 shadow-ios-card">
               <div className="flex flex-wrap gap-2">
                 {serviceCategories.map((cat) => (
                   <span key={cat} className="ios-chip bg-primary-50 text-primary-700">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-                    {cat}
+                    {categoryName(language, cat)}
                   </span>
                 ))}
               </div>
@@ -253,7 +256,7 @@ export default function ServiceDetail() {
         )}
 
         <div className="mt-4">
-          <p className="ios-section-header">Usta haqida</p>
+          <p className="ios-section-header">{t('svc.masterAbout')}</p>
           <div className="bg-white rounded-ios-lg p-4 shadow-ios-card flex items-center gap-3">
             {service.owner.photoUrl || service.owner.avatar ? (
               <img
@@ -280,7 +283,7 @@ export default function ServiceDetail() {
             </div>
             <div className="chip-mint">
               <div className="w-1.5 h-1.5 rounded-full bg-mint-600" />
-              Online
+              {t('common.online')}
             </div>
           </div>
         </div>
@@ -308,17 +311,17 @@ export default function ServiceDetail() {
               ) : (
                 <Phone className="w-5 h-5" />
               )}
-              {callSent ? "Qayta qo'ng'iroq" : "Qo'ng'iroq qilish"}
+              {callSent ? t('svc.callAgain') : t('svc.callBtn')}
             </button>
           ) : callSent ? (
             <div className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-mint-100 rounded-ios-lg">
               <CheckCircle2 className="w-5 h-5 text-mint-600" />
-              <span className="text-ios-headline text-mint-700">So'rov yuborildi!</span>
+              <span className="text-ios-headline text-mint-700">{t('svc.requestSent')}</span>
             </div>
           ) : (
             <button onClick={handleCall} className="ios-btn-primary flex-1" disabled={!user}>
               <Phone className="w-5 h-5" />
-              Bog'lanish
+              {t('svc.contact')}
             </button>
           )}
         </div>
