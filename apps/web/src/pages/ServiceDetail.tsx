@@ -19,6 +19,8 @@ import {
   Wrench,
   Award,
   Clock,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface ServiceData {
@@ -50,6 +52,7 @@ export default function ServiceDetail() {
   const [callSent, setCallSent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imageIdx, setImageIdx] = useState(0);
+  const [phoneCopied, setPhoneCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -81,6 +84,30 @@ export default function ServiceDetail() {
     if (service.owner.phone) {
       window.location.href = `tel:${service.owner.phone}`;
     }
+  };
+
+  const handleCopyPhone = async () => {
+    const phone = service?.owner?.phone;
+    if (!phone) return;
+    try {
+      await navigator.clipboard.writeText(phone);
+    } catch {
+      // Fallback for environments without clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = phone;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* ignore */
+      }
+      document.body.removeChild(ta);
+    }
+    setPhoneCopied(true);
+    window.setTimeout(() => setPhoneCopied(false), 1800);
   };
 
   const handleFavorite = async () => {
@@ -179,7 +206,7 @@ export default function ServiceDetail() {
         </div>
       </div>
 
-      <div className="px-4 -mt-6 relative">
+      <div className="px-4 mt-4 relative">
         <div className="bg-white rounded-ios-2xl p-5 shadow-ios-card">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -257,34 +284,75 @@ export default function ServiceDetail() {
 
         <div className="mt-4">
           <p className="ios-section-header">{t('svc.masterAbout')}</p>
-          <div className="bg-white rounded-ios-lg p-4 shadow-ios-card flex items-center gap-3">
-            {service.owner.photoUrl || service.owner.avatar ? (
-              <img
-                src={service.owner.photoUrl || service.owner.avatar || ''}
-                alt={service.owner.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
-                <span className="text-white font-bold text-ios-title-3">
-                  {service.owner.name.charAt(0)}
-                </span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-ios-headline text-primary-700 truncate">
-                {service.owner.name}
-              </p>
-              {service.owner.username && (
-                <p className="text-ios-footnote text-surface-500">
-                  @{service.owner.username}
-                </p>
+          <div className="bg-white rounded-ios-lg p-4 shadow-ios-card">
+            <div className="flex items-center gap-3">
+              {service.owner.photoUrl || service.owner.avatar ? (
+                <img
+                  src={service.owner.photoUrl || service.owner.avatar || ''}
+                  alt={service.owner.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-ios-title-3">
+                    {service.owner.name.charAt(0)}
+                  </span>
+                </div>
               )}
+              <div className="flex-1 min-w-0">
+                <p className="text-ios-headline text-primary-700 truncate">
+                  {service.owner.name}
+                </p>
+                {service.owner.username && (
+                  <p className="text-ios-footnote text-surface-500">
+                    @{service.owner.username}
+                  </p>
+                )}
+              </div>
+              <div className="chip-mint">
+                <div className="w-1.5 h-1.5 rounded-full bg-mint-600" />
+                {t('common.online')}
+              </div>
             </div>
-            <div className="chip-mint">
-              <div className="w-1.5 h-1.5 rounded-full bg-mint-600" />
-              {t('common.online')}
-            </div>
+
+            {service.owner.phone && (
+              <button
+                onClick={handleCopyPhone}
+                className="mt-3 w-full flex items-center gap-3 bg-surface-100 hover:bg-surface-200 active:bg-surface-200 rounded-ios px-3 py-2.5 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-4 h-4 text-primary-500" strokeWidth={2.2} />
+                </div>
+                <span className="flex-1 text-left text-ios-callout text-primary-700 font-semibold tracking-wide">
+                  {service.owner.phone}
+                </span>
+                <span
+                  className={`flex items-center gap-1 text-ios-footnote font-semibold transition-colors ${
+                    phoneCopied ? 'text-mint-600' : 'text-surface-500'
+                  }`}
+                >
+                  {phoneCopied ? (
+                    <>
+                      <Check className="w-4 h-4" strokeWidth={2.6} />
+                      {language === 'ru'
+                        ? 'Скопировано'
+                        : language === 'en'
+                        ? 'Copied'
+                        : 'Nusxa olindi'}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" strokeWidth={2.2} />
+                      {language === 'ru'
+                        ? 'Копировать'
+                        : language === 'en'
+                        ? 'Copy'
+                        : 'Nusxalash'}
+                    </>
+                  )}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>
